@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGIS Basurales</title>
+
+    <!-- Estilos Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+    <!-- Tus estilos -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ENCABEZADO -->
+    <header>
+        <h2>Catastro de Basurales</h2>
+        <p>Haz clic en el mapa para marcar la ubicación y completa el formulario.</p>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div id="container">
+
+        <!-- MAPA -->
+        <div id="map"></div>
+
+        <!-- FORMULARIO -->
+        <div id="formulario">
+            <h3>Nuevo reporte de basural</h3>
+
+            <label>Coordenadas (clic en el mapa):</label>
+            <input type="text" id="lat" placeholder="Latitud" readonly>
+            <input type="text" id="lng" placeholder="Longitud" readonly>
+
+            <label>Tipo de basural:</label>
+            <select id="tipo">
+                <option value="">Selecciona una opción</option>
+                <option value="domestico">Doméstico</option>
+                <option value="escombros">Escombros</option>
+                <option value="mixto">Mixto</option>
+                <option value="organico">Orgánico</option>
+                <option value="industrial">Industrial</option>
+            </select>
+
+            <label>Volumen estimado (m³):</label>
+            <input type="number" id="volumen" min="0">
+
+            <label>Nivel de peligro:</label>
+            <select id="peligro">
+                <option value="">Selecciona una opción</option>
+                <option value="bajo">Bajo</option>
+                <option value="medio">Medio</option>
+                <option value="alto">Alto</option>
+            </select>
+
+            <label>Descripción:</label>
+            <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
+
+            <label>URL de fotografía (opcional):</label>
+            <input type="text" id="foto" placeholder="https://...">
+
+            <label>Fecha y hora:</label>
+            <input type="datetime-local" id="fecha">
+
+            <button id="guardar">Guardar reporte</button>
+
+            <p id="mensaje"></p>
+        </div>
+
+    </div>
+
+    <!-- Scripts Leaflet -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Tu archivo JS -->
+    <script src="main.js"></script>
+
+</body>
+</html>
+<link rel="stylesheet" href="style.css">
+<script src="main.js"></script>
+
