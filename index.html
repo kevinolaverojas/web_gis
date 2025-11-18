@@ -4,80 +4,242 @@
     <meta charset="UTF-8">
     <title>WebGIS Basurales</title>
 
-    <!-- Estilos Leaflet -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
-    <!-- Tus estilos -->
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body { margin: 0; font-family: Arial; }
+
+        header {
+            padding: 15px;
+            background: #1e293b;
+            color: white;
+            text-align: center;
+        }
+
+        #container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        #map {
+            width: 65%;
+            height: 100%;
+        }
+
+        #formulario {
+            width: 35%;
+            padding: 20px;
+            background: #f1f5f9;
+            overflow-y: auto;
+        }
+
+        #formulario input,
+        #formulario select,
+        #formulario textarea,
+        #formulario button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #0284c7;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover { background: #0369a1; }
+
+        #mensaje { color: green; font-weight: bold; }
+    </style>
+
 </head>
 
 <body>
 
-    <!-- ENCABEZADO -->
-    <header>
-        <h2>Catastro de Basurales</h2>
-        <p>Haz clic en el mapa para marcar la ubicación y completa el formulario.</p>
-    </header>
+<header>
+    <h2>Catastro de Basurales</h2>
+    <p>Haz clic en el mapa o usa tu GPS para seleccionar el punto.</p>
+</header>
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <div id="container">
+<div id="container">
 
-        <!-- MAPA -->
-        <div id="map"></div>
+    <!-- MAPA -->
+    <div id="map"></div>
 
-        <!-- FORMULARIO -->
-        <div id="formulario">
-            <h3>Nuevo reporte de basural</h3>
+    <!-- FORMULARIO -->
+    <div id="formulario">
+        <h3>Nuevo reporte de basural</h3>
 
-            <label>Coordenadas (clic en el mapa):</label>
-            <input type="text" id="lat" placeholder="Latitud" readonly>
-            <input type="text" id="lng" placeholder="Longitud" readonly>
+        <label>Coordenadas:</label>
+        <input type="text" id="lat" placeholder="Latitud" readonly>
+        <input type="text" id="lng" placeholder="Longitud" readonly>
 
-            <label>Tipo de basural:</label>
-            <select id="tipo">
-                <option value="">Selecciona una opción</option>
-                <option value="domestico">Doméstico</option>
-                <option value="escombros">Escombros</option>
-                <option value="mixto">Mixto</option>
-                <option value="organico">Orgánico</option>
-                <option value="industrial">Industrial</option>
-            </select>
+        <label>Tipo de basural:</label>
+        <select id="tipo">
+            <option value="">Selecciona una opción</option>
+            <option value="domestico">Doméstico</option>
+            <option value="escombros">Escombros</option>
+            <option value="mixto">Mixto</option>
+            <option value="organico">Orgánico</option>
+            <option value="industrial">Industrial</option>
+        </select>
 
-            <label>Volumen estimado (m³):</label>
-            <input type="number" id="volumen" min="0">
+        <label>Volumen estimado (m³):</label>
+        <input type="number" id="volumen" min="0" step="0.1">
 
-            <label>Nivel de peligro:</label>
-            <select id="peligro">
-                <option value="">Selecciona una opción</option>
-                <option value="bajo">Bajo</option>
-                <option value="medio">Medio</option>
-                <option value="alto">Alto</option>
-            </select>
+        <label>Nivel de peligro:</label>
+        <select id="peligro">
+            <option value="">Selecciona</option>
+            <option value="bajo">Bajo</option>
+            <option value="medio">Medio</option>
+            <option value="alto">Alto</option>
+        </select>
 
-            <label>Descripción:</label>
-            <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
+        <label>Descripción:</label>
+        <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
 
-            <label>URL de fotografía (opcional):</label>
-            <input type="text" id="foto" placeholder="https://...">
+        <label>Tomar fotografía (cámara):</label>
+        <input type="file" id="fotoCamara" accept="image/*" capture="environment">
 
-            <label>Fecha y hora:</label>
-            <input type="datetime-local" id="fecha">
+        <label>Subir foto desde galería:</label>
+        <input type="file" id="fotoGaleria" accept="image/*">
 
-            <button id="guardar">Guardar reporte</button>
+        <label>Fecha y hora:</label>
+        <input type="datetime-local" id="fecha">
 
-            <p id="mensaje"></p>
-        </div>
+        <button id="gps">Usar mi ubicación (GPS)</button>
+        <button id="guardar">Guardar reporte</button>
 
+        <p id="mensaje"></p>
     </div>
 
-    <!-- Scripts Leaflet -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</div>
 
-    <!-- Tu archivo JS -->
-    <script src="main.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+// ========================================
+// MAPA
+// ========================================
+var map = L.map('map').setView([-37.47, -72.35], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
+
+let marker = null;
+let fotoBase64 = null;
+
+// ICONO ROJO
+var iconoRojo = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/447/447031.png",
+    iconSize: [30, 30],
+    iconAnchor: [15, 30]
+});
+
+// ========================================
+// CLICK EN EL MAPA
+// ========================================
+map.on("click", function(e) {
+    let lat = e.latlng.lat.toFixed(6);
+    let lng = e.latlng.lng.toFixed(6);
+
+    document.getElementById("lat").value = lat;
+    document.getElementById("lng").value = lng;
+
+    if (marker) marker.remove();
+
+    marker = L.marker([lat, lng], { icon: iconoRojo, draggable: true }).addTo(map);
+
+    marker.on("dragend", function() {
+        let pos = marker.getLatLng();
+        document.getElementById("lat").value = pos.lat.toFixed(6);
+        document.getElementById("lng").value = pos.lng.toFixed(6);
+    });
+});
+
+// ========================================
+// GPS DEL USUARIO
+// ========================================
+document.getElementById("gps").addEventListener("click", function() {
+    if (!navigator.geolocation) {
+        alert("GPS no disponible.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            let lat = pos.coords.latitude;
+            let lng = pos.coords.longitude;
+
+            document.getElementById("lat").value = lat.toFixed(6);
+            document.getElementById("lng").value = lng.toFixed(6);
+
+            map.setView([lat, lng], 17);
+
+            if (marker) marker.remove();
+            marker = L.marker([lat, lng], { icon: iconoRojo, draggable: true }).addTo(map);
+        },
+        function(err) {
+            alert("Error obteniendo ubicación: " + err.message);
+        },
+        { enableHighAccuracy: true }
+    );
+});
+
+// ========================================
+// PROCESO DE FOTOS
+// ========================================
+document.getElementById("fotoCamara").addEventListener("change", e => procesarFoto(e.target.files[0]));
+document.getElementById("fotoGaleria").addEventListener("change", e => procesarFoto(e.target.files[0]));
+
+function procesarFoto(archivo) {
+    if (!archivo) return;
+
+    let lector = new FileReader();
+
+    lector.onload = function(evt) {
+        fotoBase64 = evt.target.result;
+        console.log("FOTO BASE64:", fotoBase64);
+    };
+
+    lector.readAsDataURL(archivo);
+}
+
+// ========================================
+// GUARDAR REPORTE + VALIDACIÓN DE VOLUMEN
+// ========================================
+document.getElementById("guardar").addEventListener("click", function() {
+
+    let volumen = parseFloat(document.getElementById("volumen").value);
+
+    // VALIDACIÓN: evitar números negativos
+    if (volumen < 0 || isNaN(volumen)) {
+        alert("El volumen estimado NO puede ser negativo.");
+        return;
+    }
+
+    let data = {
+        latitud: document.getElementById("lat").value,
+        longitud: document.getElementById("lng").value,
+        tipo: document.getElementById("tipo").value,
+        volumen: volumen,
+        peligro: document.getElementById("peligro").value,
+        descripcion: document.getElementById("descripcion").value,
+        foto_base64: fotoBase64,
+        fecha: document.getElementById("fecha").value
+    };
+
+    console.log("REPORTE:", data);
+
+    document.getElementById("mensaje").innerHTML =
+        "📌 Reporte generado correctamente (ver consola).";
+});
+</script>
 
 </body>
 </html>
-<link rel="stylesheet" href="style.css">
-<script src="main.js"></script>
-
