@@ -1,67 +1,91 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>WebGIS Basurales</title>
+<meta charset="UTF-8">
+<title>Catastro de Basurales</title>
 
-    <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-    <style>
-        body { margin: 0; font-family: Arial; }
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #eef1f5;
+    }
 
-        header {
-            padding: 15px;
-            background: #1e293b;
-            color: white;
-            text-align: center;
-        }
+    header {
+        background: #12263A;
+        color: white;
+        text-align: center;
+        padding: 20px;
+        font-size: 22px;
+    }
 
-        #container {
-            display: flex;
-            height: calc(100vh - 80px);
-        }
+    #container {
+        display: grid;
+        grid-template-columns: 65% 35%;
+        height: calc(100vh - 110px);
+    }
 
-        #map {
-            width: 65%;
-            height: 100%;
-        }
+    #map {
+        width: 100%;
+        height: 100%;
+    }
 
-        #formulario {
-            width: 35%;
-            padding: 20px;
-            background: #f1f5f9;
-            overflow-y: auto;
-        }
+    #formulario {
+        background: white;
+        padding: 20px;
+        overflow-y: scroll;
+        border-left: 3px solid #12263A;
+    }
 
-        #formulario input,
-        #formulario select,
-        #formulario textarea,
-        #formulario button {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-        }
+    label {
+        font-weight: bold;
+        margin-top: 10px;
+        display: block;
+    }
 
-        button {
-            background: #0284c7;
-            border: none;
-            color: white;
-            cursor: pointer;
-        }
+    input, select, textarea {
+        width: 100%;
+        margin-top: 5px;
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #777;
+    }
 
-        button:hover { background: #0369a1; }
+    button {
+        background: #1E74FF;
+        padding: 12px;
+        width: 100%;
+        border: none;
+        color: white;
+        margin-top: 15px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+    }
 
-        #mensaje { color: green; font-weight: bold; }
-    </style>
+    #preview {
+        width: 100%;
+        margin-top: 10px;
+        display: none;
+        border-radius: 5px;
+    }
 
+    #mensaje {
+        margin-top: 20px;
+        font-weight: bold;
+    }
+</style>
 </head>
 
 <body>
 
 <header>
     <h2>Catastro de Basurales</h2>
-    <p>Haz clic en el mapa o usa tu GPS para seleccionar el punto.</p>
+    <p>Haz clic en el mapa o usa tu GPS para seleccionar la ubicación.</p>
 </header>
 
 <div id="container">
@@ -71,11 +95,12 @@
 
     <!-- FORMULARIO -->
     <div id="formulario">
+
         <h3>Nuevo reporte de basural</h3>
 
         <label>Coordenadas:</label>
-        <input type="text" id="lat" placeholder="Latitud" readonly>
-        <input type="text" id="lng" placeholder="Longitud" readonly>
+        <input type="text" id="lat" readonly>
+        <input type="text" id="lng" readonly>
 
         <label>Tipo de basural:</label>
         <select id="tipo">
@@ -87,8 +112,8 @@
             <option value="industrial">Industrial</option>
         </select>
 
-        <label>Volumen estimado (m³):</label>
-        <input type="number" id="volumen" min="0" step="0.1">
+        <label>Volumen estimado (m³) (solo positivos):</label>
+        <input type="number" id="volumen" min="0">
 
         <label>Nivel de peligro:</label>
         <select id="peligro">
@@ -101,144 +126,97 @@
         <label>Descripción:</label>
         <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
 
-        <label>Tomar fotografía (cámara):</label>
-        <input type="file" id="fotoCamara" accept="image/*" capture="environment">
+        <label>Subir foto o tomarla con la cámara:</label>
+        <input type="file" accept="image/*" capture="environment" id="foto">
 
-        <label>Subir foto desde galería:</label>
-        <input type="file" id="fotoGaleria" accept="image/*">
+        <img id="preview">
 
         <label>Fecha y hora:</label>
         <input type="datetime-local" id="fecha">
 
-        <button id="gps">Usar mi ubicación (GPS)</button>
         <button id="guardar">Guardar reporte</button>
 
         <p id="mensaje"></p>
-    </div>
 
+    </div>
 </div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <script>
-// ========================================
-// MAPA
-// ========================================
-var map = L.map('map').setView([-37.47, -72.35], 13);
+    // --------------------
+    // MAPA
+    // --------------------
+    var map = L.map('map').setView([-37.47, -72.35], 13);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19
-}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+    }).addTo(map);
 
-let marker = null;
-let fotoBase64 = null;
-
-// ICONO ROJO
-var iconoRojo = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/447/447031.png",
-    iconSize: [30, 30],
-    iconAnchor: [15, 30]
-});
-
-// ========================================
-// CLICK EN EL MAPA
-// ========================================
-map.on("click", function(e) {
-    let lat = e.latlng.lat.toFixed(6);
-    let lng = e.latlng.lng.toFixed(6);
-
-    document.getElementById("lat").value = lat;
-    document.getElementById("lng").value = lng;
-
-    if (marker) marker.remove();
-
-    marker = L.marker([lat, lng], { icon: iconoRojo, draggable: true }).addTo(map);
-
-    marker.on("dragend", function() {
-        let pos = marker.getLatLng();
-        document.getElementById("lat").value = pos.lat.toFixed(6);
-        document.getElementById("lng").value = pos.lng.toFixed(6);
+    var markerIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
     });
-});
 
-// ========================================
-// GPS DEL USUARIO
-// ========================================
-document.getElementById("gps").addEventListener("click", function() {
-    if (!navigator.geolocation) {
-        alert("GPS no disponible.");
-        return;
-    }
+    let marker;
 
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
+    // Clic en el mapa → agregar punto
+    map.on("click", function(e) {
+        let lat = e.latlng.lat.toFixed(6);
+        let lng = e.latlng.lng.toFixed(6);
+
+        document.getElementById("lat").value = lat;
+        document.getElementById("lng").value = lng;
+
+        if (marker) map.removeLayer(marker);
+
+        marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+    });
+
+    // GPS automático
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
             let lat = pos.coords.latitude;
             let lng = pos.coords.longitude;
 
+            map.setView([lat, lng], 16);
+
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+
             document.getElementById("lat").value = lat.toFixed(6);
             document.getElementById("lng").value = lng.toFixed(6);
-
-            map.setView([lat, lng], 17);
-
-            if (marker) marker.remove();
-            marker = L.marker([lat, lng], { icon: iconoRojo, draggable: true }).addTo(map);
-        },
-        function(err) {
-            alert("Error obteniendo ubicación: " + err.message);
-        },
-        { enableHighAccuracy: true }
-    );
-});
-
-// ========================================
-// PROCESO DE FOTOS
-// ========================================
-document.getElementById("fotoCamara").addEventListener("change", e => procesarFoto(e.target.files[0]));
-document.getElementById("fotoGaleria").addEventListener("change", e => procesarFoto(e.target.files[0]));
-
-function procesarFoto(archivo) {
-    if (!archivo) return;
-
-    let lector = new FileReader();
-
-    lector.onload = function(evt) {
-        fotoBase64 = evt.target.result;
-        console.log("FOTO BASE64:", fotoBase64);
-    };
-
-    lector.readAsDataURL(archivo);
-}
-
-// ========================================
-// GUARDAR REPORTE + VALIDACIÓN DE VOLUMEN
-// ========================================
-document.getElementById("guardar").addEventListener("click", function() {
-
-    let volumen = parseFloat(document.getElementById("volumen").value);
-
-    // VALIDACIÓN: evitar números negativos
-    if (volumen < 0 || isNaN(volumen)) {
-        alert("El volumen estimado NO puede ser negativo.");
-        return;
+        });
     }
 
-    let data = {
-        latitud: document.getElementById("lat").value,
-        longitud: document.getElementById("lng").value,
-        tipo: document.getElementById("tipo").value,
-        volumen: volumen,
-        peligro: document.getElementById("peligro").value,
-        descripcion: document.getElementById("descripcion").value,
-        foto_base64: fotoBase64,
-        fecha: document.getElementById("fecha").value
-    };
+    // Foto → previsualización
+    document.getElementById("foto").addEventListener("change", function(e) {
+        let file = e.target.files[0];
+        if (!file) return;
 
-    console.log("REPORTE:", data);
+        let reader = new FileReader();
+        reader.onload = function(r) {
+            let img = document.getElementById("preview");
+            img.src = r.target.result;
+            img.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    });
 
-    document.getElementById("mensaje").innerHTML =
-        "📌 Reporte generado correctamente (ver consola).";
-});
+    // Guardar reporte
+    document.getElementById("guardar").addEventListener("click", function() {
+        let lat = lat.value;
+        let lng = lng.value;
+
+        if (!lat || !lng) {
+            alert("Debes seleccionar una ubicación en el mapa.");
+            return;
+        }
+
+        document.getElementById("mensaje").innerHTML =
+            "✔ Reporte generado correctamente (solo visual).";
+
+        console.log("Reporte generado — SOLO VISTA PREVIA");
+    });
 </script>
 
 </body>
