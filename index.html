@@ -96,6 +96,24 @@
     <!-- FORMULARIO -->
     <div id="formulario">
 
+        <!-- 💬 INSTRUCCIONES ARRIBA DEL FORMULARIO -->
+        <div id="instrucciones" style="
+            background:#f1f4f8;
+            padding:15px;
+            border-radius:8px;
+            margin-bottom:20px;
+            border-left:5px solid #1E74FF;
+        ">
+            <h3 style="margin-top:0;">Nuevo reporte ciudadano</h3>
+
+            <p style="margin:0; font-size:14px; line-height:1.5;">
+                1) Al abrir el visor se intentará usar tu ubicación actual automáticamente.<br>
+                2) Si no funciona o prefieres otro lugar, toca el mapa para marcar la ubicación del problema.<br>
+                3) Puedes tomar una foto o subirla desde tu galería.<br>
+                4) Completa el formulario y presiona <b>Guardar reporte</b>.
+            </p>
+        </div>
+
         <h3>Nuevo reporte de basural</h3>
 
         <label>Coordenadas:</label>
@@ -126,7 +144,7 @@
         <label>Descripción:</label>
         <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
 
-        <label>Subir foto o tomarla con la cámara:</label>
+        <label>Fotografía (opcional):</label>
         <input type="file" accept="image/*" capture="environment" id="foto">
 
         <img id="preview">
@@ -153,8 +171,8 @@
 
     var markerIcon = L.icon({
         iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
+        iconSize: [38, 38],
+        iconAnchor: [19, 38]
     });
 
     let marker;
@@ -202,12 +220,12 @@
         reader.readAsDataURL(file);
     });
 
-    // Guardar reporte
+    // Guardar reporte (solo visual)
     document.getElementById("guardar").addEventListener("click", function() {
-        let lat = lat.value;
-        let lng = lng.value;
+        let latV = document.getElementById("lat").value;
+        let lngV = document.getElementById("lng").value;
 
-        if (!lat || !lng) {
+        if (!latV || !lngV) {
             alert("Debes seleccionar una ubicación en el mapa.");
             return;
         }
