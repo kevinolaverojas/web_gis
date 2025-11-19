@@ -77,6 +77,7 @@
     #mensaje {
         margin-top: 20px;
         font-weight: bold;
+        text-align: center;
     }
 </style>
 </head>
@@ -117,12 +118,12 @@
             <h3>Nuevo reporte de basural</h3>
 
             <label>Coordenadas:</label>
-            <input type="text" id="lat" readonly>
-            <input type="text" id="lon" readonly>
+            <input type="text" name="lat" id="lat" readonly>
+            <input type="text" name="lon" id="lng" readonly>
 
             <label>Tipo de basural:</label>
-            <select id="tipo">
-                <option value="">Selecciona</option>
+            <select name="tipo" id="tipo">
+                <option value="">Selecciona una opción</option>
                 <option value="domestico">Doméstico</option>
                 <option value="escombros">Escombros</option>
                 <option value="mixto">Mixto</option>
@@ -131,10 +132,10 @@
             </select>
 
             <label>Volumen estimado (m³):</label>
-            <input type="number" id="volumen" min="0">
+            <input type="number" name="volumen" id="volumen" min="0">
 
             <label>Nivel de peligro:</label>
-            <select id="peligro">
+            <select name="peligro" id="peligro">
                 <option value="">Selecciona</option>
                 <option value="bajo">Bajo</option>
                 <option value="medio">Medio</option>
@@ -142,19 +143,22 @@
             </select>
 
             <label>Descripción:</label>
-            <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
+            <textarea name="descripcion" id="descripcion" placeholder="Detalles del basural..."></textarea>
 
             <label>Fotografía (opcional):</label>
-            <input type="file" id="foto" accept="image/*" capture="environment">
+            <input type="file" name="foto" accept="image/*" capture="environment" id="foto">
+
             <img id="preview">
 
             <label>Fecha y hora:</label>
-            <input type="datetime-local" id="fecha">
+            <input type="datetime-local" name="fecha" id="fecha">
 
             <button type="submit">Guardar reporte</button>
+
         </form>
 
         <p id="mensaje"></p>
+
     </div>
 </div>
 
@@ -176,32 +180,31 @@
 
     map.on("click", function(e) {
         let lat = e.latlng.lat.toFixed(6);
-        let lon = e.latlng.lng.toFixed(6);
+        let lng = e.latlng.lng.toFixed(6);
 
         document.getElementById("lat").value = lat;
-        document.getElementById("lon").value = lon;
+        document.getElementById("lng").value = lng;
 
         if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
+        marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
     });
 
-    // GPS
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
             let lat = pos.coords.latitude;
-            let lon = pos.coords.longitude;
+            let lng = pos.coords.longitude;
 
-            document.getElementById("lat").value = lat.toFixed(6);
-            document.getElementById("lon").value = lon.toFixed(6);
-
-            map.setView([lat, lon], 16);
+            map.setView([lat, lng], 16);
 
             if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
+            marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+
+            document.getElementById("lat").value = lat.toFixed(6);
+            document.getElementById("lng").value = lng.toFixed(6);
         });
     }
 
-    // Preview foto
+    // Previsualización foto
     document.getElementById("foto").addEventListener("change", function(e) {
         let file = e.target.files[0];
         if (!file) return;
@@ -236,12 +239,11 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// GUARDAR REPORTE
 document.getElementById("formReporte").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     let lat = document.getElementById("lat").value;
-    let lon = document.getElementById("lon").value;
+    let lon = document.getElementById("lng").value;
     let tipo = document.getElementById("tipo").value;
     let volumen = document.getElementById("volumen").value;
     let peligro = document.getElementById("peligro").value;
@@ -263,7 +265,19 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
         creado: new Date().toISOString()
     });
 
-    alert("✔ Reporte guardado correctamente");
+    // MENSAJE VISUAL EN PANTALLA
+    const msg = document.getElementById("mensaje");
+    msg.innerHTML = "✔ Reporte guardado correctamente";
+    msg.style.background = "#1E74FF";
+    msg.style.color = "white";
+    msg.style.padding = "12px";
+    msg.style.borderRadius = "6px";
+
+    setTimeout(() => {
+        msg.innerHTML = "";
+        msg.style.padding = "0";
+    }, 4000);
+
     document.getElementById("formReporte").reset();
     document.getElementById("preview").style.display = "none";
 });
