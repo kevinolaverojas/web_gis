@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -98,18 +96,33 @@
     <!-- FORMULARIO -->
     <div id="formulario">
 
-<<<<<<< HEAD
-        <h3>Nuevo reporte ciudadano</h3>
+        <div style="
+            background:#f1f4f8;
+            padding:15px;
+            border-radius:8px;
+            margin-bottom:20px;
+            border-left:5px solid #1E74FF;
+        ">
+            <h3 style="margin-top:0;">Nuevo reporte ciudadano</h3>
+            <p style="margin:0; font-size:14px; line-height:1.5;">
+                1) El visor intentará usar tu ubicación actual.<br>
+                2) Si no funciona, toca el mapa para marcar la ubicación.<br>
+                3) Puedes tomar una foto o subirla.<br>
+                4) Completa el formulario y presiona <b>Guardar reporte</b>.
+            </p>
+        </div>
 
         <form id="formReporte">
 
+            <h3>Nuevo reporte de basural</h3>
+
             <label>Coordenadas:</label>
             <input type="text" id="lat" readonly>
-            <input type="text" id="lng" readonly>
+            <input type="text" id="lon" readonly>
 
             <label>Tipo de basural:</label>
             <select id="tipo">
-                <option value="">Selecciona una opción</option>
+                <option value="">Selecciona</option>
                 <option value="domestico">Doméstico</option>
                 <option value="escombros">Escombros</option>
                 <option value="mixto">Mixto</option>
@@ -133,80 +146,19 @@
 
             <label>Fotografía (opcional):</label>
             <input type="file" id="foto" accept="image/*" capture="environment">
-
             <img id="preview">
 
             <label>Fecha y hora:</label>
             <input type="datetime-local" id="fecha">
-=======
-        <div id="instrucciones" style="
-            background:#f1f4f8;
-            padding:15px;
-            border-radius:8px;
-            margin-bottom:20px;
-            border-left:5px solid #1E74FF;
-        ">
-            <h3 style="margin-top:0;">Nuevo reporte ciudadano</h3>
-            <p style="margin:0; font-size:14px; line-height:1.5;">
-                1) El visor intentará usar tu ubicación actual.<br>
-                2) Si no funciona, toca el mapa para marcar la ubicación.<br>
-                3) Puedes tomar una foto o subirla.<br>
-                4) Completa el formulario y presiona <b>Guardar reporte</b>.
-            </p>
-        </div>
-
-        <!-- FORMULARIO SIN PHP -->
-        <form id="formReporte">
-
-            <h3>Nuevo reporte de basural</h3>
-
-            <label>Coordenadas:</label>
-            <input type="text" name="lat" id="lat" readonly>
-            <input type="text" name="lon" id="lng" readonly>
-
-            <label>Tipo de basural:</label>
-            <select name="tipo" id="tipo">
-                <option value="">Selecciona una opción</option>
-                <option value="domestico">Doméstico</option>
-                <option value="escombros">Escombros</option>
-                <option value="mixto">Mixto</option>
-                <option value="organico">Orgánico</option>
-                <option value="industrial">Industrial</option>
-            </select>
-
-            <label>Volumen estimado (m³):</label>
-            <input type="number" name="volumen" id="volumen" min="0">
-
-            <label>Nivel de peligro:</label>
-            <select name="peligro" id="peligro">
-                <option value="">Selecciona</option>
-                <option value="bajo">Bajo</option>
-                <option value="medio">Medio</option>
-                <option value="alto">Alto</option>
-            </select>
-
-            <label>Descripción:</label>
-            <textarea name="descripcion" id="descripcion" placeholder="Detalles del basural..."></textarea>
-
-            <label>Fotografía (opcional):</label>
-            <input type="file" name="foto" accept="image/*" capture="environment" id="foto">
-
-            <img id="preview">
-
-            <label>Fecha y hora:</label>
-            <input type="datetime-local" name="fecha" id="fecha">
->>>>>>> 6ccb68524130e4e527a48342c7508aed7488693f
 
             <button type="submit">Guardar reporte</button>
-
         </form>
 
         <p id="mensaje"></p>
-
     </div>
 </div>
 
-<!-- SCRIPT DEL MAPA -->
+<!-- MAPA -->
 <script>
     var map = L.map('map').setView([-37.47, -72.35], 13);
 
@@ -224,31 +176,32 @@
 
     map.on("click", function(e) {
         let lat = e.latlng.lat.toFixed(6);
-        let lng = e.latlng.lng.toFixed(6);
+        let lon = e.latlng.lng.toFixed(6);
 
         document.getElementById("lat").value = lat;
-        document.getElementById("lng").value = lng;
+        document.getElementById("lon").value = lon;
 
         if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+        marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
     });
 
+    // GPS
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
             let lat = pos.coords.latitude;
-            let lng = pos.coords.longitude;
-
-            map.setView([lat, lng], 16);
-
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+            let lon = pos.coords.longitude;
 
             document.getElementById("lat").value = lat.toFixed(6);
-            document.getElementById("lng").value = lng.toFixed(6);
+            document.getElementById("lon").value = lon.toFixed(6);
+
+            map.setView([lat, lon], 16);
+
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
         });
     }
 
-    // Previsualización de foto
+    // Preview foto
     document.getElementById("foto").addEventListener("change", function(e) {
         let file = e.target.files[0];
         if (!file) return;
@@ -263,65 +216,7 @@
     });
 </script>
 
-<<<<<<< HEAD
 <!-- FIREBASE -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyCCFJljTjEFgA41bbk8-dSr2s3jNbyhRbg",
-        authDomain: "web1-f347f.firebaseapp.com",
-        projectId: "web1-f347f",
-        storageBucket: "web1-f347f.appspot.com",
-        messagingSenderId: "205587516678",
-        appId: "1:205587516678:web:d132d2fc75e3c11a812287",
-        measurementId: "G-8HC2V112ZS"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-
-    // 🔥 GUARDAR REPORTE EN FIREBASE
-    document.getElementById("formReporte").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        let lat = document.getElementById("lat").value;
-        let lon = document.getElementById("lng").value;
-        let tipo = document.getElementById("tipo").value;
-        let volumen = document.getElementById("volumen").value;
-        let peligro = document.getElementById("peligro").value;
-        let descripcion = document.getElementById("descripcion").value;
-        let fecha = document.getElementById("fecha").value;
-
-        let fotoFile = document.getElementById("foto").files[0];
-        let fotoURL = "";
-
-        if (fotoFile) {
-            const storageRef = ref(storage, "fotos/" + Date.now() + "_" + fotoFile.name);
-            await uploadBytes(storageRef, fotoFile);
-            fotoURL = await getDownloadURL(storageRef);
-        }
-
-        await addDoc(collection(db, "reportes"), {
-            lat,
-            lon,
-            tipo,
-            volumen,
-            peligro,
-            descripcion,
-            fecha,
-            foto: fotoURL,
-            creado: new Date().toISOString()
-        });
-
-        alert("✔ Reporte guardado correctamente");
-        document.getElementById("formReporte").reset();
-        document.getElementById("preview").style.display = "none";
-=======
-<!-- SCRIPT FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
@@ -341,12 +236,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// GUARDAR FORMULARIO EN FIRESTORE + STORAGE
+// GUARDAR REPORTE
 document.getElementById("formReporte").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     let lat = document.getElementById("lat").value;
-    let lon = document.getElementById("lng").value;
+    let lon = document.getElementById("lon").value;
     let tipo = document.getElementById("tipo").value;
     let volumen = document.getElementById("volumen").value;
     let peligro = document.getElementById("peligro").value;
@@ -366,7 +261,6 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
         lat, lon, tipo, volumen, peligro, descripcion, fecha,
         foto: fotoURL,
         creado: new Date().toISOString()
->>>>>>> 6ccb68524130e4e527a48342c7508aed7488693f
     });
 
     alert("✔ Reporte guardado correctamente");
