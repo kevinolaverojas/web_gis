@@ -176,9 +176,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-/* ===========================
-   GUARDAR REPORTE (validado = false)
-=========================== */
+/* ===================================================
+   VALIDACIÓN + GUARDAR REPORTE (validado = false)
+=================================================== */
+
 document.getElementById("formReporte").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -191,6 +192,16 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
     let descripcion = document.getElementById("descripcion").value;
     let fecha = document.getElementById("fecha").value;
 
+    // VALIDACIONES
+    if (!lat || !lon) return mostrarError("Debes seleccionar una ubicación en el mapa.");
+    if (!tipo) return mostrarError("Selecciona un tipo de basural.");
+    if (!ancho || ancho <= 0) return mostrarError("Ingrese un ancho válido (mayor a 0).");
+    if (!largo || largo <= 0) return mostrarError("Ingrese un largo válido (mayor a 0).");
+    if (!peligro) return mostrarError("Seleccione el nivel de peligro.");
+    if (!descripcion.trim()) return mostrarError("Ingrese una descripción.");
+    if (!fecha) return mostrarError("Seleccione la fecha del reporte.");
+
+    // FOTO (opcional)
     let fotoFile = document.getElementById("foto").files[0];
     let fotoURL = "";
 
@@ -209,22 +220,50 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
         validado: false
     });
 
-    const msg = document.getElementById("mensaje");
-    msg.innerHTML = "✔ Reporte guardado correctamente (pendiente de validación)";
-    msg.style.background = "#1E74FF";
-    msg.style.color = "white";
-    msg.style.padding = "12px";
-    msg.style.borderRadius = "6px";
-
-    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
+    mostrarMensaje("✔ Reporte guardado correctamente (pendiente de validación)");
 
     document.getElementById("formReporte").reset();
     document.getElementById("preview").style.display = "none";
 });
 
-/* ===============================
+/* ===================================================
+   MOSTRAR ERROR
+=================================================== */
+function mostrarError(texto) {
+    const msg = document.getElementById("mensaje");
+    msg.innerHTML = texto;
+    msg.style.background = "#e74c3c";
+    msg.style.color = "white";
+    msg.style.padding = "12px";
+    msg.style.borderRadius = "6px";
+
+    setTimeout(() => {
+        msg.innerHTML = "";
+        msg.style.padding = "0";
+    }, 4000);
+}
+
+/* ===================================================
+   MOSTRAR MENSAJE ÉXITO
+=================================================== */
+function mostrarMensaje(texto) {
+    const msg = document.getElementById("mensaje");
+    msg.innerHTML = texto;
+    msg.style.background = "#1E74FF";
+    msg.style.color = "white";
+    msg.style.padding = "12px";
+    msg.style.borderRadius = "6px";
+
+    setTimeout(() => {
+        msg.innerHTML = "";
+        msg.style.padding = "0";
+    }, 4000);
+}
+
+/* ===================================================
    CARGAR SOLO REPORTES VALIDADOS
-=============================== */
+=================================================== */
+
 const q = query(collection(db, "reportes"), where("validado", "==", true));
 
 onSnapshot(q, (snapshot) => {
@@ -254,4 +293,5 @@ onSnapshot(q, (snapshot) => {
 
 </body>
 </html>
+
 
