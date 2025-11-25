@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -177,11 +178,20 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 /* ===================================================
-   VALIDACIÓN + GUARDAR REPORTE (validado = false)
+   VALIDACIÓN + GUARDAR REPORTE (evita duplicados)
 =================================================== */
 
 document.getElementById("formReporte").addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    let btn = document.querySelector("button[type='submit']");
+
+    // Evitar doble clic
+    if (btn.disabled) return;
+
+    // Desactivar botón para evitar repetidos
+    btn.disabled = true;
+    btn.innerText = "Enviando...";
 
     let lat = document.getElementById("lat").value;
     let lon = document.getElementById("lng").value;
@@ -193,38 +203,57 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
     let fecha = document.getElementById("fecha").value;
 
     // VALIDACIONES
-    if (!lat || !lon) return mostrarError("Debes seleccionar una ubicación en el mapa.");
-    if (!tipo) return mostrarError("Selecciona un tipo de basural.");
-    if (!ancho || ancho <= 0) return mostrarError("Ingrese un ancho válido (mayor a 0).");
-    if (!largo || largo <= 0) return mostrarError("Ingrese un largo válido (mayor a 0).");
-    if (!peligro) return mostrarError("Seleccione el nivel de peligro.");
-    if (!descripcion.trim()) return mostrarError("Ingrese una descripción.");
-    if (!fecha) return mostrarError("Seleccione la fecha del reporte.");
+    if (!lat || !lon) return bloquearError("Debes seleccionar una ubicación en el mapa.", btn);
+    if (!tipo) return bloquearError("Selecciona un tipo de basural.", btn);
+    if (!ancho || ancho <= 0) return bloquearError("Ingrese un ancho válido (mayor a 0).", btn);
+    if (!largo || largo <= 0) return bloquearError("Ingrese un largo válido (mayor a 0).", btn);
+    if (!peligro) return bloquearError("Seleccione el nivel de peligro.", btn);
+    if (!descripcion.trim()) return bloquearError("Ingrese una descripción.", btn);
+    if (!fecha) return bloquearError("Seleccione la fecha del reporte.", btn);
 
     // FOTO (opcional)
     let fotoFile = document.getElementById("foto").files[0];
     let fotoURL = "";
 
-    if (fotoFile) {
-        const storageRef = ref(storage, "fotos/" + Date.now() + "_" + fotoFile.name);
-        await uploadBytes(storageRef, fotoFile);
-        fotoURL = await getDownloadURL(storageRef);
+    try {
+        if (fotoFile) {
+            const storageRef = ref(storage, "fotos/" + Date.now() + "_" + fotoFile.name);
+            await uploadBytes(storageRef, fotoFile);
+            fotoURL = await getDownloadURL(storageRef);
+        }
+
+        await addDoc(collection(db, "reportes"), {
+            lat, lon, tipo,
+            ancho, largo,
+            peligro, descripcion, fecha,
+            foto: fotoURL,
+            creado: new Date().toISOString(),
+            validado: false
+        });
+
+        mostrarMensaje("✔ Reporte guardado correctamente (pendiente de validación)");
+
+        document.getElementById("formReporte").reset();
+        document.getElementById("preview").style.display = "none";
+
+    } catch (error) {
+        bloquearError("Error al guardar el reporte. Inténtalo nuevamente.", btn);
+        return;
     }
 
-    await addDoc(collection(db, "reportes"), {
-        lat, lon, tipo,
-        ancho, largo,
-        peligro, descripcion, fecha,
-        foto: fotoURL,
-        creado: new Date().toISOString(),
-        validado: false
-    });
-
-    mostrarMensaje("✔ Reporte guardado correctamente (pendiente de validación)");
-
-    document.getElementById("formReporte").reset();
-    document.getElementById("preview").style.display = "none";
+    // Reactivar botón luego de 3 segundos para evitar spam
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerText = "Guardar reporte";
+    }, 3000);
 });
+
+// Función para manejar errores y reactivar el botón
+function bloquearError(texto, btn) {
+    mostrarError(texto);
+    btn.disabled = false;
+    btn.innerText = "Guardar reporte";
+}
 
 /* ===================================================
    MOSTRAR ERROR
@@ -293,5 +322,6 @@ onSnapshot(q, (snapshot) => {
 
 </body>
 </html>
+
 
 
