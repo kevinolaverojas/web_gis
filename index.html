@@ -9,76 +9,16 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: #eef1f5;
-    }
-
-    header {
-        background: #12263A;
-        color: white;
-        text-align: center;
-        padding: 20px;
-        font-size: 22px;
-    }
-
-    #container {
-        display: grid;
-        grid-template-columns: 65% 35%;
-        height: calc(100vh - 110px);
-    }
-
-    #map {
-        width: 100%;
-        height: 100%;
-    }
-
-    #formulario {
-        background: white;
-        padding: 20px;
-        overflow-y: scroll;
-        border-left: 3px solid #12263A;
-    }
-
-    label {
-        font-weight: bold;
-        margin-top: 10px;
-        display: block;
-    }
-
-    input, select, textarea {
-        width: 100%;
-        margin-top: 5px;
-        padding: 8px;
-        border-radius: 5px;
-        border: 1px solid #777;
-    }
-
-    button {
-        background: #1E74FF;
-        padding: 12px;
-        width: 100%;
-        border: none;
-        color: white;
-        margin-top: 15px;
-        border-radius: 6px;
-        font-size: 16px;
-        cursor: pointer;
-    }
-
-    #preview {
-        width: 100%;
-        margin-top: 10px;
-        display: none;
-        border-radius: 5px;
-    }
-
-    #mensaje {
-        margin-top: 20px;
-        font-weight: bold;
-        text-align: center;
-    }
+    body { margin: 0; font-family: Arial, sans-serif; background: #eef1f5; }
+    header { background: #12263A; color: white; text-align: center; padding: 20px; font-size: 22px; }
+    #container { display: grid; grid-template-columns: 65% 35%; height: calc(100vh - 110px); }
+    #map { width: 100%; height: 100%; }
+    #formulario { background: white; padding: 20px; overflow-y: scroll; border-left: 3px solid #12263A; }
+    label { font-weight: bold; margin-top: 10px; display: block; }
+    input, select, textarea { width: 100%; margin-top: 5px; padding: 8px; border-radius: 5px; border: 1px solid #777; }
+    button { background: #1E74FF; padding: 12px; width: 100%; border: none; color: white; margin-top: 15px; border-radius: 6px; font-size: 16px; cursor: pointer; }
+    #preview { width: 100%; margin-top: 10px; display: none; border-radius: 5px; }
+    #mensaje { margin-top: 20px; font-weight: bold; text-align: center; }
 </style>
 </head>
 
@@ -90,20 +30,10 @@
 </header>
 
 <div id="container">
-
-    <!-- MAPA -->
     <div id="map"></div>
 
-    <!-- FORMULARIO -->
     <div id="formulario">
-
-        <div style="
-            background:#f1f4f8;
-            padding:15px;
-            border-radius:8px;
-            margin-bottom:20px;
-            border-left:5px solid #1E74FF;
-        ">
+        <div style="background:#f1f4f8; padding:15px; border-radius:8px; margin-bottom:20px; border-left:5px solid #1E74FF;">
             <h3 style="margin-top:0;">Nuevo reporte ciudadano</h3>
             <p style="margin:0; font-size:14px; line-height:1.5;">
                 1) El visor intentará usar tu ubicación actual.<br>
@@ -114,7 +44,6 @@
         </div>
 
         <form id="formReporte">
-
             <h3>Nuevo reporte de basural</h3>
 
             <label>Coordenadas:</label>
@@ -154,11 +83,9 @@
             <input type="datetime-local" name="fecha" id="fecha">
 
             <button type="submit">Guardar reporte</button>
-
         </form>
 
         <p id="mensaje"></p>
-
     </div>
 </div>
 
@@ -204,7 +131,6 @@
         });
     }
 
-    // Previsualización foto
     document.getElementById("foto").addEventListener("change", function(e) {
         let file = e.target.files[0];
         if (!file) return;
@@ -222,7 +148,7 @@
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -239,6 +165,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+/* ===============================
+   GUARDAR REPORTE (validado = false)
+================================ */
 document.getElementById("formReporte").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -262,26 +191,50 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
     await addDoc(collection(db, "reportes"), {
         lat, lon, tipo, volumen, peligro, descripcion, fecha,
         foto: fotoURL,
-        creado: new Date().toISOString()
+        creado: new Date().toISOString(),
+        validado: false   // ★ REPORTES SIN VALIDAR
     });
 
-    // MENSAJE VISUAL EN PANTALLA
     const msg = document.getElementById("mensaje");
-    msg.innerHTML = "✔ Reporte guardado correctamente";
+    msg.innerHTML = "✔ Reporte guardado correctamente (pendiente de validación)";
     msg.style.background = "#1E74FF";
     msg.style.color = "white";
     msg.style.padding = "12px";
     msg.style.borderRadius = "6px";
 
-    setTimeout(() => {
-        msg.innerHTML = "";
-        msg.style.padding = "0";
-    }, 4000);
-
+    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
     document.getElementById("formReporte").reset();
     document.getElementById("preview").style.display = "none";
+});
+
+/* ============================================
+   Cargar reportes validados automaticamente
+============================================ */
+const q = query(collection(db, "reportes"), where("validado", "==", true));
+
+onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+            const d = change.doc.data();
+
+            L.marker([d.lat, d.lon], { icon: L.icon({
+                iconUrl: "https://cdn-icons-png.flaticon.com/512/535/535239.png",
+                iconSize: [36, 36],
+                iconAnchor: [18, 36]
+            })})
+            .addTo(map)
+            .bindPopup(`
+                <b>${d.tipo}</b><br>
+                Volumen: ${d.volumen} m³<br>
+                Peligro: ${d.peligro}<br>
+                <img src="${d.foto}" width="120"><br>
+                ${d.descripcion}
+            `);
+        }
+    });
 });
 </script>
 
 </body>
 </html>
+
