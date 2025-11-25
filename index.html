@@ -21,19 +21,40 @@
     #container { display: grid; grid-template-columns: 65% 35%; height: calc(100vh - 110px); }
     #map { width: 100%; height: 100%; position: relative; }
 
-    /* Barra de herramientas dentro del mapa */
+    /* Botones flotantes */
+    .toggle-btn {
+        position: absolute;
+        z-index: 1001;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: white;
+        border: 1px solid #444;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+    }
+    #toggleTools { top: 10px; left: 10px; }
+    #toggleStats { top: 10px; right: 10px; }
+
+    /* Barra de herramientas dentro del mapa (oculta por defecto) */
     #tools {
         position: absolute;
-        top: 10px;
+        top: 55px;
         left: 10px;
         z-index: 999;
         background: white;
         padding: 10px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.25);
-        display: flex;
+        display: none;              /* 🔹 oculta al inicio */
         gap: 8px;
         flex-wrap: wrap;
+        width: 95%;
+        max-width: 600px;
     }
     #tools button, #tools select {
         padding: 6px 10px;
@@ -41,6 +62,7 @@
         border: 1px solid #444;
         background: #f1f1f1;
         cursor: pointer;
+        width: 100%;
     }
 
     #formulario { background: white; padding: 20px; overflow-y: scroll; border-left: 3px solid #12263A; }
@@ -50,10 +72,10 @@
     #preview { width: 100%; margin-top: 10px; display: none; border-radius: 5px; }
     #mensaje { margin-top: 20px; font-weight: bold; text-align: center; }
 
-    /* Panel estadísticas */
+    /* Panel estadísticas (oculto por defecto) */
     #estadisticas {
         position: absolute;
-        top: 100px;
+        top: 55px;
         right: 10px;
         background: white;
         padding: 15px;
@@ -61,6 +83,7 @@
         width: 260px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.25);
         z-index: 999;
+        display: none;              /* 🔹 oculta al inicio */
     }
 </style>
 </head>
@@ -76,6 +99,9 @@
 
     <!-- MAPA + BARRA -->
     <div id="map">
+        <!-- Botones flotantes para mostrar/ocultar paneles -->
+        <div id="toggleTools" class="toggle-btn" title="Mostrar/ocultar herramientas">🛠</div>
+        <div id="toggleStats" class="toggle-btn" title="Mostrar/ocultar estadísticas">📊</div>
         
         <!-- Barra herramientas -->
         <div id="tools">
@@ -227,19 +253,33 @@
         reader.readAsDataURL(file);
     });
 
-    // ===========================
-    // HERRAMIENTAS DE MEDICIÓN
-    // ===========================
-
-    let midiendo = false;
-
+    // HERRAMIENTAS DE MEDICIÓN (modo simple)
     document.getElementById("medirDist").onclick = () => {
         map.pm.enableDraw('Line');
     };
-
     document.getElementById("medirArea").onclick = () => {
         map.pm.enableDraw('Polygon');
     };
+
+    // 🔘 Toggle panel herramientas
+    const toolsPanel = document.getElementById("tools");
+    document.getElementById("toggleTools").addEventListener("click", () => {
+        if (toolsPanel.style.display === "none" || toolsPanel.style.display === "") {
+            toolsPanel.style.display = "flex";
+        } else {
+            toolsPanel.style.display = "none";
+        }
+    });
+
+    // 🔘 Toggle panel estadísticas
+    const statsPanel = document.getElementById("estadisticas");
+    document.getElementById("toggleStats").addEventListener("click", () => {
+        if (statsPanel.style.display === "none" || statsPanel.style.display === "") {
+            statsPanel.style.display = "block";
+        } else {
+            statsPanel.style.display = "none";
+        }
+    });
 </script>
 
 <!-- FIREBASE -->

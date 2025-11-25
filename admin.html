@@ -109,9 +109,7 @@ const db = getFirestore(app);
 let mapa;
 let marker;
 
-/* ======================================
-   Cargar SOLO reportes no validados
-====================================== */
+/* Cargar SOLO reportes no validados */
 const q = query(collection(db, "reportes"), where("validado", "==", false));
 
 onSnapshot(q, snapshot => {
@@ -134,9 +132,7 @@ onSnapshot(q, snapshot => {
     });
 });
 
-/* ======================================
-   Mostrar el detalle en el panel derecho
-====================================== */
+/* Mostrar el detalle en el panel derecho */
 function mostrarDetalle(id, d){
 
     document.getElementById("info").innerHTML = `
@@ -168,9 +164,7 @@ function mostrarDetalle(id, d){
     mapa.setView([d.lat, d.lon], 16);
 }
 
-/* ======================================
-   Validar un reporte
-====================================== */
+/*Validar un reporte */
 window.validarReporte = async function(id){
     await updateDoc(doc(db, "reportes", id), {
         validado: true
@@ -179,9 +173,7 @@ window.validarReporte = async function(id){
     alert("✔ Reporte validado correctamente");
 }
 
-/* ======================================
-   Eliminar un reporte
-====================================== */
+/* Eliminar un reporte */
 window.eliminarReporte = async function(id){
     const confirmar = confirm("¿Seguro que deseas eliminar este reporte?");
     if (!confirmar) return;
