@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Panel Administrador - Basurales</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+    body { font-family: Arial, sans-serif; margin:0; background:#f2f4f7; }
+    header { background:#12263A; padding:20px; color:white; font-size:22px; text-align:center; }
+    #contenedor { display:flex; height: calc(100vh - 80px); }
+
+    #lista {
+        width: 35%;
+        background:white;
+        border-right:3px solid #12263A;
+        overflow-y:scroll;
+        padding:20px;
+    }
+
+    #detalle {
+        width: 65%;
+        padding:20px;
+    }
+
+    .item {
+        padding:12px;
+        border:1px solid #ddd;
+        margin-bottom:10px;
+        border-radius:6px;
+        cursor:pointer;
+        background:#fafafa;
+    }
+
+    .item:hover {
+        background:#e6f0ff;
+    }
+
+    button {
+        padding:12px;
+        border:none;
+        border-radius:6px;
+        cursor:pointer;
+        font-size:16px;
+        margin-top:10px;
+    }
+
+    .validar {
+        background:#2ecc71; color:white;
+    }
+    .rechazar {
+        background:#e74c3c; color:white;
+    }
+
+    #mapa {
+        width:100%;
+        height:300px;
+        border:1px solid #aaa;
+        border-radius:6px;
+        margin-top:10px;
+    }
+
+</style>
+</head>
+
+<body>
+
+<header>Panel Administrador — Validación de Reportes</header>
+
+<div id="contenedor">
+
+    <!-- Lista de reportes -->
+    <div id="lista">
+        <h2>Reportes pendientes</h2>
+        <p>Haz clic en un reporte para revisarlo.</p>
+        <div id="items"></div>
+    </div>
+
+    <!-- Detalle del reporte seleccionado -->
+    <div id="detalle">
+        <h2>Detalle del reporte</h2>
+        <div id="info">Selecciona un reporte para ver detalles.</div>
+        <div id="mapa"></div>
+    </div>
+
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getFirestore, collection, doc, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCCFJljTjEFgA41bbk8-dSr2s3jNbyhRbg",
+    authDomain: "web1-f347f.firebaseapp.com",
+    projectId: "web1-f347f",
+    storageBucket: "web1-f347f.firebasestorage.app",
+    messagingSenderId: "205587516678",
+    appId: "1:205587516678:web:d132d2fc75e3c11a812287",
+    measurementId: "G-8HC2V112ZS"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let mapa;
+let marker;
+
+/* ======================================
+   Cargar SOLO reportes no validados
+====================================== */
+const q = query(collection(db, "reportes"), where("validado", "==", false));
+
+onSnapshot(q, snapshot => {
+    const contenedor = document.getElementById("items");
+    contenedor.innerHTML = "";
+
+    snapshot.forEach(docu => {
+        const d = docu.data();
+
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+            <b>${d.tipo}</b><br>
+            ${d.descripcion.substring(0,40)}...<br>
+            <small>${d.fecha}</small>
+        `;
+        div.onclick = () => mostrarDetalle(docu.id, d);
+
+        contenedor.appendChild(div);
+    });
+});
+
+/* ======================================
+   Mostrar el detalle en el panel derecho
+====================================== */
+function mostrarDetalle(id, d){
+
+    document.getElementById("info").innerHTML = `
+        <h3>Tipo: ${d.tipo}</h3>
+        <p><b>Peligro:</b> ${d.peligro}</p>
+        <p><b>Ancho:</b> ${d.ancho} m</p>
+        <p><b>Largo:</b> ${d.largo} m</p>
+        <p><b>Descripción:</b> ${d.descripcion}</p>
+        <p><b>Fecha:</b> ${d.fecha}</p>
+        <img src="${d.foto}" width="200" style="border-radius:6px;"><br><br>
+
+        <button class="validar" onclick="validarReporte('${id}')">Validar reporte</button>
+        <button class="rechazar" onclick="eliminarReporte('${id}')">Rechazar / Eliminar</button>
+    `;
+
+    // inicializar mapa si no existe
+    if (!mapa) {
+        mapa = L.map('mapa').setView([d.lat, d.lon], 16);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(mapa);
+    }
+
+    // actualizar marcador
+    if (marker) mapa.removeLayer(marker);
+    marker = L.marker([d.lat, d.lon]).addTo(mapa);
+
+    mapa.setView([d.lat, d.lon], 16);
+}
+
+/* ======================================
+   Validar un reporte
+====================================== */
+window.validarReporte = async function(id){
+    await updateDoc(doc(db, "reportes", id), {
+        validado: true
+    });
+
+    alert("✔ Reporte validado correctamente");
+}
+
+/* ======================================
+   Eliminar un reporte
+====================================== */
+window.eliminarReporte = async function(id){
+    const confirmar = confirm("¿Seguro que deseas eliminar este reporte?");
+    if (!confirmar) return;
+
+    await deleteDoc(doc(db, "reportes", id));
+
+    alert("Reporte eliminado correctamente");
+}
+
+</script>
+
+</body>
+</html>
