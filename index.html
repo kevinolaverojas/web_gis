@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -9,17 +8,60 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+<!-- Leaflet-Geoman (para medición simple) -->
+<link href="https://unpkg.com/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css" rel="stylesheet">
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
     body { margin: 0; font-family: Arial, sans-serif; background: #eef1f5; }
     header { background: #12263A; color: white; text-align: center; padding: 20px; font-size: 22px; }
     #container { display: grid; grid-template-columns: 65% 35%; height: calc(100vh - 110px); }
-    #map { width: 100%; height: 100%; }
+    #map { width: 100%; height: 100%; position: relative; }
+
+    /* Barra de herramientas dentro del mapa */
+    #tools {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 999;
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    #tools button, #tools select {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #444;
+        background: #f1f1f1;
+        cursor: pointer;
+    }
+
     #formulario { background: white; padding: 20px; overflow-y: scroll; border-left: 3px solid #12263A; }
     label { font-weight: bold; margin-top: 10px; display: block; }
     input, select, textarea { width: 100%; margin-top: 5px; padding: 8px; border-radius: 5px; border: 1px solid #777; }
     button { background: #1E74FF; padding: 12px; width: 100%; border: none; color: white; margin-top: 15px; border-radius: 6px; font-size: 16px; cursor: pointer; }
     #preview { width: 100%; margin-top: 10px; display: none; border-radius: 5px; }
     #mensaje { margin-top: 20px; font-weight: bold; text-align: center; }
+
+    /* Panel estadísticas */
+    #estadisticas {
+        position: absolute;
+        top: 100px;
+        right: 10px;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        width: 260px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        z-index: 999;
+    }
 </style>
 </head>
 
@@ -32,8 +74,39 @@
 
 <div id="container">
 
-    <!-- MAPA -->
-    <div id="map"></div>
+    <!-- MAPA + BARRA -->
+    <div id="map">
+        
+        <!-- Barra herramientas -->
+        <div id="tools">
+            <button id="medirDist">📏 Medir distancia</button>
+            <button id="medirArea">📐 Medir área</button>
+
+            <select id="filtroTipo">
+                <option value="todos">Tipo (todos)</option>
+                <option value="domestico">Doméstico</option>
+                <option value="escombros">Escombros</option>
+                <option value="mixto">Mixto</option>
+                <option value="organico">Orgánico</option>
+                <option value="industrial">Industrial</option>
+            </select>
+
+            <select id="filtroPeligro">
+                <option value="todos">Peligro (todos)</option>
+                <option value="bajo">Bajo</option>
+                <option value="medio">Medio</option>
+                <option value="alto">Alto</option>
+            </select>
+        </div>
+
+        <!-- Panel de estadísticas -->
+        <div id="estadisticas">
+            <h4 style="margin:0 0 10px 0;">📊 Estadísticas</h4>
+            <canvas id="graficoPeligro" width="240" height="240"></canvas>
+            <p id="statsTexto" style="font-size:14px; margin-top:10px;"></p>
+        </div>
+
+    </div>
 
     <!-- FORMULARIO -->
     <div id="formulario">
@@ -104,9 +177,7 @@
 <script>
     var map = L.map('map').setView([-37.47, -72.35], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     var markerIcon = L.icon({
         iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
@@ -142,7 +213,7 @@
         });
     }
 
-    // Previsualización de foto
+    // FOTO
     document.getElementById("foto").addEventListener("change", function(e) {
         let file = e.target.files[0];
         if (!file) return;
@@ -155,12 +226,28 @@
         };
         reader.readAsDataURL(file);
     });
+
+    // ===========================
+    // HERRAMIENTAS DE MEDICIÓN
+    // ===========================
+
+    let midiendo = false;
+
+    document.getElementById("medirDist").onclick = () => {
+        map.pm.enableDraw('Line');
+    };
+
+    document.getElementById("medirArea").onclick = () => {
+        map.pm.enableDraw('Polygon');
+    };
 </script>
 
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import {
+    getFirestore, collection, addDoc, query, where, onSnapshot, getDocs
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -178,18 +265,15 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 /* ===================================================
-   VALIDACIÓN + GUARDAR REPORTE (evita duplicados)
+   GUARDAR REPORTE SIN DUPLICADOS
 =================================================== */
 
 document.getElementById("formReporte").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     let btn = document.querySelector("button[type='submit']");
-
-    // Evitar doble clic
     if (btn.disabled) return;
 
-    // Desactivar botón para evitar repetidos
     btn.disabled = true;
     btn.innerText = "Enviando...";
 
@@ -202,16 +286,14 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
     let descripcion = document.getElementById("descripcion").value;
     let fecha = document.getElementById("fecha").value;
 
-    // VALIDACIONES
-    if (!lat || !lon) return bloquearError("Debes seleccionar una ubicación en el mapa.", btn);
-    if (!tipo) return bloquearError("Selecciona un tipo de basural.", btn);
-    if (!ancho || ancho <= 0) return bloquearError("Ingrese un ancho válido (mayor a 0).", btn);
-    if (!largo || largo <= 0) return bloquearError("Ingrese un largo válido (mayor a 0).", btn);
-    if (!peligro) return bloquearError("Seleccione el nivel de peligro.", btn);
-    if (!descripcion.trim()) return bloquearError("Ingrese una descripción.", btn);
-    if (!fecha) return bloquearError("Seleccione la fecha del reporte.", btn);
+    if (!lat || !lon) return bloquearError("Debes seleccionar ubicación.", btn);
+    if (!tipo) return bloquearError("Selecciona un tipo.", btn);
+    if (!ancho || ancho <= 0) return bloquearError("Ancho inválido.", btn);
+    if (!largo || largo <= 0) return bloquearError("Largo inválido.", btn);
+    if (!peligro) return bloquearError("Selecciona peligro.", btn);
+    if (!descripcion.trim()) return bloquearError("Descripción requerida.", btn);
+    if (!fecha) return bloquearError("Fecha requerida.", btn);
 
-    // FOTO (opcional)
     let fotoFile = document.getElementById("foto").files[0];
     let fotoURL = "";
 
@@ -231,33 +313,31 @@ document.getElementById("formReporte").addEventListener("submit", async (e) => {
             validado: false
         });
 
-        mostrarMensaje("✔ Reporte guardado correctamente (pendiente de validación)");
+        mostrarMensaje("✔ Reporte guardado (pendiente de validación)");
 
         document.getElementById("formReporte").reset();
         document.getElementById("preview").style.display = "none";
 
-    } catch (error) {
-        bloquearError("Error al guardar el reporte. Inténtalo nuevamente.", btn);
+    } catch (e) {
+        bloquearError("Error al guardar.", btn);
         return;
     }
 
-    // Reactivar botón luego de 3 segundos para evitar spam
     setTimeout(() => {
         btn.disabled = false;
         btn.innerText = "Guardar reporte";
     }, 3000);
 });
 
-// Función para manejar errores y reactivar el botón
 function bloquearError(texto, btn) {
     mostrarError(texto);
     btn.disabled = false;
     btn.innerText = "Guardar reporte";
 }
 
-/* ===================================================
-   MOSTRAR ERROR
-=================================================== */
+/* ===========================
+   MENSAJES
+=========================== */
 function mostrarError(texto) {
     const msg = document.getElementById("mensaje");
     msg.innerHTML = texto;
@@ -265,16 +345,9 @@ function mostrarError(texto) {
     msg.style.color = "white";
     msg.style.padding = "12px";
     msg.style.borderRadius = "6px";
-
-    setTimeout(() => {
-        msg.innerHTML = "";
-        msg.style.padding = "0";
-    }, 4000);
+    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
 }
 
-/* ===================================================
-   MOSTRAR MENSAJE ÉXITO
-=================================================== */
 function mostrarMensaje(texto) {
     const msg = document.getElementById("mensaje");
     msg.innerHTML = texto;
@@ -282,16 +355,37 @@ function mostrarMensaje(texto) {
     msg.style.color = "white";
     msg.style.padding = "12px";
     msg.style.borderRadius = "6px";
-
-    setTimeout(() => {
-        msg.innerHTML = "";
-        msg.style.padding = "0";
-    }, 4000);
+    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
 }
 
 /* ===================================================
-   CARGAR SOLO REPORTES VALIDADOS
+   CARGAR REPORTES VALIDADOS + FILTROS
 =================================================== */
+
+let marcadores = [];
+let filtroTipo = "todos";
+let filtroPeligro = "todos";
+
+function aplicarFiltros() {
+    marcadores.forEach(m => map.removeLayer(m));
+
+    marcadores.forEach(m => {
+        let d = m.data;
+        if ((filtroTipo === "todos" || d.tipo === filtroTipo) &&
+            (filtroPeligro === "todos" || d.peligro === filtroPeligro)) {
+            m.addTo(map);
+        }
+    });
+}
+
+document.getElementById("filtroTipo").onchange = function() {
+    filtroTipo = this.value;
+    aplicarFiltros();
+};
+document.getElementById("filtroPeligro").onchange = function() {
+    filtroPeligro = this.value;
+    aplicarFiltros();
+};
 
 const q = query(collection(db, "reportes"), where("validado", "==", true));
 
@@ -300,28 +394,71 @@ onSnapshot(q, (snapshot) => {
         if (change.type === "added") {
             const d = change.doc.data();
 
-            L.marker([d.lat, d.lon], { 
+            let marker = L.marker([d.lat, d.lon], {
                 icon: L.icon({
                     iconUrl: "https://cdn-icons-png.flaticon.com/512/535/535239.png",
                     iconSize: [36, 36],
                     iconAnchor: [18, 36]
                 })
             })
-            .addTo(map)
             .bindPopup(`
                 <b>${d.tipo}</b><br>
-                Dimensiones: ${d.ancho} m × ${d.largo} m<br>
+                Dimensiones: ${d.ancho}×${d.largo} m<br>
                 Peligro: ${d.peligro}<br>
                 <img src="${d.foto}" width="120"><br>
                 ${d.descripcion}
             `);
+
+            marker.data = d;
+            marcadores.push(marker);
+            aplicarFiltros();
         }
     });
 });
+
+/* ===================================================
+   ESTADÍSTICAS + GRÁFICO
+=================================================== */
+
+async function cargarEstadisticas() {
+    const snap = await getDocs(collection(db, "reportes"));
+    let total = 0;
+    let bajo = 0, medio = 0, alto = 0;
+
+    snap.forEach(d => {
+        const data = d.data();
+        if (data.validado === true) {
+            total++;
+            if (data.peligro === "bajo") bajo++;
+            if (data.peligro === "medio") medio++;
+            if (data.peligro === "alto") alto++;
+        }
+    });
+
+    document.getElementById("statsTexto").innerHTML = `
+        Total reportes validados: <b>${total}</b><br>
+        Bajo: <b>${bajo}</b><br>
+        Medio: <b>${medio}</b><br>
+        Alto: <b>${alto}</b>
+    `;
+
+    const ctx = document.getElementById('graficoPeligro').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Bajo', 'Medio', 'Alto'],
+            datasets: [{
+                data: [bajo, medio, alto],
+                backgroundColor: ['#2ecc71', '#f1c40f', '#e74c3c']
+            }]
+        }
+    });
+}
+
+cargarEstadisticas();
+
 </script>
 
 </body>
 </html>
-
-
 
