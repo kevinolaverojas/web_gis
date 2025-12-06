@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Leaflet-Geoman -->
+<!-- Leaflet-Geoman (aún cargado pero sin usar) -->
 <link href="https://unpkg.com/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css" rel="stylesheet">
 <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.min.js"></script>
 
@@ -27,11 +27,12 @@
 
     #map { width: 100%; height: 100%; position: relative; }
 
+    /* Botones flotantes */
     .toggle-btn {
         position: absolute;
         z-index: 1001;
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         background: white;
         border: 1px solid #444;
@@ -40,29 +41,32 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        font-size: 20px;
+        font-size: 18px;
     }
 
-    /* 🔹 Movidos para NO tapar zoom */
-    #toggleTools { top: 95px; left: 15px; }
-    #toggleStats { top: 95px; right: 15px; }
+    /* 🔹 MOVIDO PARA NO TAPAR ZOOM */
+    #toggleTools { top: 90px; left: 15px; }
+    #toggleStats { top: 15px; right: 15px; }
 
+    /* Barra de herramientas dentro del mapa */
     #tools {
         position: absolute;
-        top: 150px;
-        left: 15px;
+        top: 140px;    /* MÁS ABAJO */
+        left: 15px;    /* MÁS HACIA AFUERA */
         z-index: 999;
         background: white;
-        padding: 12px;
+        padding: 10px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.25);
         display: none;
-        gap: 10px;
-        width: 260px;
+        gap: 8px;
+        flex-wrap: wrap;
+        width: 95%;
+        max-width: 600px;
     }
 
-    #tools button, #tools select {
-        padding: 8px 10px;
+    #tools select {
+        padding: 6px 10px;
         border-radius: 6px;
         border: 1px solid #444;
         background: #f1f1f1;
@@ -70,13 +74,7 @@
         width: 100%;
     }
 
-    #formulario {
-        background: white;
-        padding: 20px;
-        overflow-y: scroll;
-        border-left: 3px solid #12263A;
-    }
-
+    #formulario { background: white; padding: 20px; overflow-y: scroll; border-left: 3px solid #12263A; }
     label { font-weight: bold; margin-top: 10px; display: block; }
     input, select, textarea { width: 100%; margin-top: 5px; padding: 8px; border-radius: 5px; border: 1px solid #777; }
     button { background: #1E74FF; padding: 12px; width: 100%; border: none; color: white; margin-top: 15px; border-radius: 6px; font-size: 16px; cursor: pointer; }
@@ -84,8 +82,8 @@
 
     #estadisticas {
         position: absolute;
-        top: 150px;
-        right: 15px;
+        top: 60px;
+        right: 10px;
         background: white;
         padding: 15px;
         border-radius: 8px;
@@ -95,8 +93,8 @@
         display: none;
     }
 </style>
-</head>
 
+</head>
 <body>
 
 <header>
@@ -105,19 +103,15 @@
 </header>
 
 <div id="container">
-
+    <!-- MAPA -->
     <div id="map">
 
-        <!-- Botones flotantes -->
+        <!-- BOTONES FLOTANTES -->
         <div id="toggleTools" class="toggle-btn">🛠</div>
         <div id="toggleStats" class="toggle-btn">📊</div>
 
-        <!-- PANEL DE HERRAMIENTAS -->
+        <!-- PANEL DE HERRAMIENTAS (SIN MEDICIÓN) -->
         <div id="tools">
-            <button id="medirDist">📏 Medir distancia</button>
-            <button id="medirArea">📐 Medir área</button>
-            <button id="terminarMedicion">✔ Terminar medición</button>
-
             <select id="filtroTipo">
                 <option value="todos">Tipo (todos)</option>
                 <option value="domestico">Doméstico</option>
@@ -135,6 +129,7 @@
             </select>
         </div>
 
+        <!-- PANEL ESTADÍSTICAS -->
         <div id="estadisticas">
             <h4>📊 Estadísticas</h4>
             <canvas id="graficoPeligro"></canvas>
@@ -143,11 +138,14 @@
 
     </div>
 
+    <!-- FORMULARIO -->
     <div id="formulario">
 
         <div style="background:#f1f4f8; padding:15px; border-radius:8px; margin-bottom:20px; border-left:5px solid #1E74FF;">
             <h3>Nuevo reporte ciudadano</h3>
-            <p>1) Usa el GPS o toca el mapa.<br>2) Sube una foto si quieres.<br>3) Guarda el reporte.</p>
+            <p>1) Usa el GPS o toca el mapa.<br>
+               2) Sube una foto.<br>
+               3) Completa el formulario.</p>
         </div>
 
         <form id="formReporte">
@@ -155,11 +153,11 @@
             <h3>Nuevo reporte de basural</h3>
 
             <label>Coordenadas:</label>
-            <input type="text" name="lat" id="lat" readonly>
-            <input type="text" name="lon" id="lng" readonly>
+            <input type="text" id="lat" readonly>
+            <input type="text" id="lng" readonly>
 
             <label>Tipo de basural:</label>
-            <select name="tipo" id="tipo">
+            <select id="tipo">
                 <option value="">Selecciona una opción</option>
                 <option value="domestico">Doméstico</option>
                 <option value="escombros">Escombros</option>
@@ -169,13 +167,13 @@
             </select>
 
             <label>Ancho estimado (m):</label>
-            <input type="number" name="ancho" id="ancho">
+            <input type="number" id="ancho" min="0">
 
             <label>Largo estimado (m):</label>
-            <input type="number" name="largo" id="largo">
+            <input type="number" id="largo" min="0">
 
             <label>Nivel de peligro:</label>
-            <select name="peligro" id="peligro">
+            <select id="peligro">
                 <option value="">Selecciona</option>
                 <option value="bajo">Bajo</option>
                 <option value="medio">Medio</option>
@@ -183,15 +181,15 @@
             </select>
 
             <label>Descripción:</label>
-            <textarea name="descripcion" id="descripcion"></textarea>
+            <textarea id="descripcion" placeholder="Detalles del basural..."></textarea>
 
             <label>Fotografía:</label>
-            <input type="file" name="foto" accept="image/*" id="foto">
+            <input type="file" id="foto" accept="image/*">
 
             <img id="preview">
 
             <label>Fecha y hora:</label>
-            <input type="datetime-local" name="fecha" id="fecha">
+            <input type="datetime-local" id="fecha">
 
             <button type="submit">Guardar reporte</button>
         </form>
@@ -201,16 +199,11 @@
     </div>
 </div>
 
-<!-- =====================================================
-     MAPA + MEDICIÓN COMPLETA
-===================================================== -->
+<!-- MAPA JS -->
 <script>
-
-// Inicialización del mapa
 var map = L.map('map').setView([-37.47, -72.35], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// Ícono del marcador
 var markerIcon = L.icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
     iconSize: [38, 38],
@@ -219,7 +212,7 @@ var markerIcon = L.icon({
 
 let marker;
 
-// Selección manual en el mapa
+/*************** CLICK EN MAPA ****************/
 map.on("click", function(e) {
     let lat = e.latlng.lat.toFixed(6);
     let lng = e.latlng.lng.toFixed(6);
@@ -231,9 +224,9 @@ map.on("click", function(e) {
     marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
 });
 
-// GPS
+/*************** GPS ****************/
 if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(pos) {
+    navigator.geolocation.getCurrentPosition((pos) => {
         let lat = pos.coords.latitude;
         let lng = pos.coords.longitude;
 
@@ -247,7 +240,7 @@ if (navigator.geolocation) {
     });
 }
 
-// Vista previa de la foto
+/*************** FOTO PREVIEW ****************/
 document.getElementById("foto").addEventListener("change", function(e) {
     let file = e.target.files[0];
     if (!file) return;
@@ -261,62 +254,224 @@ document.getElementById("foto").addEventListener("change", function(e) {
     reader.readAsDataURL(file);
 });
 
-/* =====================================================
-   MEDICIÓN REAL — FUNCIONA 100%
-===================================================== */
-
-map.pm.setGlobalOptions({
-    measurement: true,
-    tooltips: true,
-    continueDrawing: false,
-    finishOn: "dblclick",
-    snapDistance: 10
-});
-
-/* DISTANCIA */
-document.getElementById("medirDist").onclick = () => {
-    map.pm.enableDraw("Line", {
-        measurement: true,
-        showLength: true,
-        tooltips: true,
-    });
-};
-
-/* ÁREA */
-document.getElementById("medirArea").onclick = () => {
-    map.pm.enableDraw("Polygon", {
-        measurement: true,
-        showArea: true,
-        showLength: true,
-        tooltips: true
-    });
-};
-
-/* BOTÓN: TERMINAR MEDICIÓN */
-document.getElementById("terminarMedicion").onclick = () => {
-    map.pm.disableDraw();
-
-    // Termina edición y cierra geometrías abiertas
-    map.pm.getGeomanLayers().forEach(layer => {
-        if (layer.pm) {
-            layer.pm.disable();
-        }
-    });
-
-    alert("Medición finalizada");
-};
-
-/* MOSTRAR/OCULTAR TOOLS */
+/*************** TOGGLES PANEL ****************/
 document.getElementById("toggleTools").onclick = () => {
     const t = document.getElementById("tools");
     t.style.display = t.style.display === "none" || t.style.display === "" ? "block" : "none";
 };
 
-/* MOSTRAR/OCULTAR ESTADÍSTICAS */
 document.getElementById("toggleStats").onclick = () => {
     const s = document.getElementById("estadisticas");
     s.style.display = s.style.display === "none" || s.style.display === "" ? "block" : "none";
 };
+</script>
+
+<!-- FIREBASE (NO MODIFICADO) -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCCFJljTjEFgA41bbk8-dSr2s3jNbyhRbg",
+    authDomain: "web1-f347f.firebaseapp.com",
+    projectId: "web1-f347f",
+    storageBucket: "web1-f347f.firebasestorage.app",
+    messagingSenderId: "205587516678",
+    appId: "1:205587516678:web:d132d2fc75e3c11a812287"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+/* ===================================================
+   GUARDAR REPORTE
+=================================================== */
+document.getElementById("formReporte").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    let btn = document.querySelector("button[type='submit']");
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    btn.innerText = "Enviando...";
+
+    let lat = document.getElementById("lat").value;
+    let lon = document.getElementById("lng").value;
+    let tipo = document.getElementById("tipo").value;
+    let ancho = document.getElementById("ancho").value;
+    let largo = document.getElementById("largo").value;
+    let peligro = document.getElementById("peligro").value;
+    let descripcion = document.getElementById("descripcion").value;
+    let fecha = document.getElementById("fecha").value;
+
+    if (!lat || !lon) return bloquearError("Debes seleccionar ubicación.", btn);
+    if (!tipo) return bloquearError("Selecciona un tipo.", btn);
+    if (!ancho || ancho <= 0) return bloquearError("Ancho inválido.", btn);
+    if (!largo || largo <= 0) return bloquearError("Largo inválido.", btn);
+    if (!peligro) return bloquearError("Selecciona peligro.", btn);
+    if (!descripcion.trim()) return bloquearError("Descripción requerida.", btn);
+    if (!fecha) return bloquearError("Fecha requerida.", btn);
+
+    let fotoFile = document.getElementById("foto").files[0];
+    let fotoURL = "";
+
+    try {
+        if (fotoFile) {
+            const storageRef = ref(storage, "fotos/" + Date.now() + "_" + fotoFile.name);
+            await uploadBytes(storageRef, fotoFile);
+            fotoURL = await getDownloadURL(storageRef);
+        }
+
+        await addDoc(collection(db, "reportes"), {
+            lat, lon, tipo,
+            ancho, largo,
+            peligro, descripcion, fecha,
+            foto: fotoURL,
+            creado: new Date().toISOString(),
+            validado: false
+        });
+
+        mostrarMensaje("✔ Reporte guardado (pendiente de validación)");
+
+        document.getElementById("formReporte").reset();
+        document.getElementById("preview").style.display = "none";
+
+    } catch (e) {
+        bloquearError("Error al guardar.", btn);
+        return;
+    }
+
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerText = "Guardar reporte";
+    }, 3000);
+});
+
+function bloquearError(texto, btn) {
+    mostrarError(texto);
+    btn.disabled = false;
+    btn.innerText = "Guardar reporte";
+}
+
+function mostrarError(texto) {
+    const msg = document.getElementById("mensaje");
+    msg.innerHTML = texto;
+    msg.style.background = "#e74c3c";
+    msg.style.color = "white";
+    msg.style.padding = "12px";
+    msg.style.borderRadius = "6px";
+    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
+}
+
+function mostrarMensaje(texto) {
+    const msg = document.getElementById("mensaje");
+    msg.innerHTML = texto;
+    msg.style.background = "#1E74FF";
+    msg.style.color = "white";
+    msg.style.padding = "12px";
+    msg.style.borderRadius = "6px";
+    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
+}
+
+/* ===================================================
+   CARGAR REPORTES + FILTROS
+=================================================== */
+let marcadores = [];
+let filtroTipo = "todos";
+let filtroPeligro = "todos";
+
+function aplicarFiltros() {
+    marcadores.forEach(m => map.removeLayer(m));
+
+    marcadores.forEach(m => {
+        let d = m.data;
+        if ((filtroTipo === "todos" || d.tipo === filtroTipo) &&
+            (filtroPeligro === "todos" || d.peligro === filtroPeligro)) {
+            m.addTo(map);
+        }
+    });
+}
+
+document.getElementById("filtroTipo").onchange = function() {
+    filtroTipo = this.value;
+    aplicarFiltros();
+};
+
+document.getElementById("filtroPeligro").onchange = function() {
+    filtroPeligro = this.value;
+    aplicarFiltros();
+};
+
+const q = query(collection(db, "reportes"), where("validado", "==", true));
+
+onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+            const d = change.doc.data();
+
+            let marker = L.marker([d.lat, d.lon], {
+                icon: L.icon({
+                    iconUrl: "https://cdn-icons-png.flaticon.com/512/535/535239.png",
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 36]
+                })
+            })
+            .bindPopup(`
+                <b>${d.tipo}</b><br>
+                Dimensiones: ${d.ancho}×${d.largo} m<br>
+                Peligro: ${d.peligro}<br>
+                <img src="${d.foto}" width="120"><br>
+                ${d.descripcion}
+            `);
+
+            marker.data = d;
+            marcadores.push(marker);
+            aplicarFiltros();
+        }
+    });
+});
+
+/* ===================================================
+   ESTADÍSTICAS
+=================================================== */
+async function cargarEstadisticas() {
+    const snap = await getDocs(collection(db, "reportes"));
+    let total = 0;
+    let bajo = 0, medio = 0, alto = 0;
+
+    snap.forEach(d => {
+        const data = d.data();
+        if (data.validado === true) {
+            total++;
+            if (data.peligro === "bajo") bajo++;
+            if (data.peligro === "medio") medio++;
+            if (data.peligro === "alto") alto++;
+        }
+    });
+
+    document.getElementById("statsTexto").innerHTML = `
+        Total reportes validados: <b>${total}</b><br>
+        Bajo: <b>${bajo}</b><br>
+        Medio: <b>${medio}</b><br>
+        Alto: <b>${alto}</b>
+    `;
+
+    const ctx = document.getElementById('graficoPeligro').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Bajo', 'Medio', 'Alto'],
+            datasets: [{
+                data: [bajo, medio, alto],
+                backgroundColor: ['#2ecc71', '#f1c40f', '#e74c3c']
+            }]
+        }
+    });
+}
+
+cargarEstadisticas();
 
 </script>
 
