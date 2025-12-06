@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Leaflet-Geoman (para medición simple) -->
+<!-- Leaflet-Geoman -->
 <link href="https://unpkg.com/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css" rel="stylesheet">
 <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.min.js"></script>
 
@@ -18,10 +18,15 @@
 <style>
     body { margin: 0; font-family: Arial, sans-serif; background: #eef1f5; }
     header { background: #12263A; color: white; text-align: center; padding: 20px; font-size: 22px; }
-    #container { display: grid; grid-template-columns: 65% 35%; height: calc(100vh - 110px); }
+
+    #container {
+        display: grid;
+        grid-template-columns: 65% 35%;
+        height: calc(100vh - 110px);
+    }
+
     #map { width: 100%; height: 100%; position: relative; }
 
-    /* Botones flotantes */
     .toggle-btn {
         position: absolute;
         z-index: 1001;
@@ -37,25 +42,25 @@
         cursor: pointer;
         font-size: 18px;
     }
-    #toggleTools { top: 10px; left: 10px; }
-    #toggleStats { top: 10px; right: 10px; }
 
-    /* Barra de herramientas dentro del mapa (oculta por defecto) */
+    /* 🔹 Movidos para no tapar el zoom */
+    #toggleTools { top: 70px; left: 15px; }
+    #toggleStats { top: 70px; right: 15px; }
+
     #tools {
         position: absolute;
-        top: 55px;
-        left: 10px;
+        top: 120px;
+        left: 15px;
         z-index: 999;
         background: white;
         padding: 10px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.25);
-        display: none;              /* 🔹 oculta al inicio */
+        display: none;
         gap: 8px;
-        flex-wrap: wrap;
-        width: 95%;
-        max-width: 600px;
+        width: 260px;
     }
+
     #tools button, #tools select {
         padding: 6px 10px;
         border-radius: 6px;
@@ -66,24 +71,23 @@
     }
 
     #formulario { background: white; padding: 20px; overflow-y: scroll; border-left: 3px solid #12263A; }
+
     label { font-weight: bold; margin-top: 10px; display: block; }
     input, select, textarea { width: 100%; margin-top: 5px; padding: 8px; border-radius: 5px; border: 1px solid #777; }
     button { background: #1E74FF; padding: 12px; width: 100%; border: none; color: white; margin-top: 15px; border-radius: 6px; font-size: 16px; cursor: pointer; }
     #preview { width: 100%; margin-top: 10px; display: none; border-radius: 5px; }
-    #mensaje { margin-top: 20px; font-weight: bold; text-align: center; }
 
-    /* Panel estadísticas (oculto por defecto) */
     #estadisticas {
         position: absolute;
-        top: 55px;
-        right: 10px;
+        top: 120px;
+        right: 15px;
         background: white;
         padding: 15px;
         border-radius: 8px;
         width: 260px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.25);
         z-index: 999;
-        display: none;              /* 🔹 oculta al inicio */
+        display: none;
     }
 </style>
 </head>
@@ -97,12 +101,13 @@
 
 <div id="container">
 
-    <!-- MAPA + BARRA -->
+    <!-- MAPA -->
     <div id="map">
-        <!-- Botones flotantes para mostrar/ocultar paneles -->
-        <div id="toggleTools" class="toggle-btn" title="Mostrar/ocultar herramientas">🛠</div>
-        <div id="toggleStats" class="toggle-btn" title="Mostrar/ocultar estadísticas">📊</div>
-        
+
+        <!-- Botones flotantes -->
+        <div id="toggleTools" class="toggle-btn">🛠</div>
+        <div id="toggleStats" class="toggle-btn">📊</div>
+
         <!-- Barra herramientas -->
         <div id="tools">
             <button id="medirDist">📏 Medir distancia</button>
@@ -125,11 +130,11 @@
             </select>
         </div>
 
-        <!-- Panel de estadísticas -->
+        <!-- Panel estadísticas -->
         <div id="estadisticas">
-            <h4 style="margin:0 0 10px 0;">📊 Estadísticas</h4>
-            <canvas id="graficoPeligro" width="240" height="240"></canvas>
-            <p id="statsTexto" style="font-size:14px; margin-top:10px;"></p>
+            <h4>📊 Estadísticas</h4>
+            <canvas id="graficoPeligro"></canvas>
+            <p id="statsTexto"></p>
         </div>
 
     </div>
@@ -138,13 +143,8 @@
     <div id="formulario">
 
         <div style="background:#f1f4f8; padding:15px; border-radius:8px; margin-bottom:20px; border-left:5px solid #1E74FF;">
-            <h3 style="margin-top:0;">Nuevo reporte ciudadano</h3>
-            <p style="margin:0; font-size:14px; line-height:1.5;">
-                1) El visor intentará usar tu ubicación actual.<br>
-                2) Si no funciona, toca el mapa para marcar la ubicación.<br>
-                3) Puedes tomar una foto o subirla.<br>
-                4) Completa el formulario y presiona <b>Guardar reporte</b>.
-            </p>
+            <h3>Nuevo reporte ciudadano</h3>
+            <p>1) Usa el GPS o toca el mapa.<br>2) Sube una foto si quieres.<br>3) Guarda el reporte.</p>
         </div>
 
         <form id="formReporte">
@@ -166,10 +166,10 @@
             </select>
 
             <label>Ancho estimado (m):</label>
-            <input type="number" name="ancho" id="ancho" min="0">
+            <input type="number" name="ancho" id="ancho">
 
             <label>Largo estimado (m):</label>
-            <input type="number" name="largo" id="largo" min="0">
+            <input type="number" name="largo" id="largo">
 
             <label>Nivel de peligro:</label>
             <select name="peligro" id="peligro">
@@ -180,10 +180,10 @@
             </select>
 
             <label>Descripción:</label>
-            <textarea name="descripcion" id="descripcion" placeholder="Detalles del basural..."></textarea>
+            <textarea name="descripcion" id="descripcion"></textarea>
 
-            <label>Fotografía (opcional):</label>
-            <input type="file" name="foto" accept="image/*" capture="environment" id="foto">
+            <label>Fotografía:</label>
+            <input type="file" name="foto" accept="image/*" id="foto">
 
             <img id="preview">
 
@@ -191,7 +191,6 @@
             <input type="datetime-local" name="fecha" id="fecha">
 
             <button type="submit">Guardar reporte</button>
-
         </form>
 
         <p id="mensaje"></p>
@@ -199,303 +198,105 @@
     </div>
 </div>
 
-<!-- MAPA -->
+<!-- MAPA JS -->
 <script>
-    var map = L.map('map').setView([-37.47, -72.35], 13);
+var map = L.map('map').setView([-37.47, -72.35], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    var markerIcon = L.icon({
-        iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-        iconSize: [38, 38],
-        iconAnchor: [19, 38]
-    });
+var markerIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+    iconSize: [38, 38],
+    iconAnchor: [19, 38]
+});
 
-    let marker;
+let marker;
 
-    map.on("click", function(e) {
-        let lat = e.latlng.lat.toFixed(6);
-        let lng = e.latlng.lng.toFixed(6);
+// clic en el mapa
+map.on("click", function(e) {
+    let lat = e.latlng.lat.toFixed(6);
+    let lng = e.latlng.lng.toFixed(6);
 
-        document.getElementById("lat").value = lat;
-        document.getElementById("lng").value = lng;
+    document.getElementById("lat").value = lat;
+    document.getElementById("lng").value = lng;
+
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+});
+
+// GPS
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        let lat = pos.coords.latitude;
+        let lng = pos.coords.longitude;
+
+        map.setView([lat, lng], 16);
 
         if (marker) map.removeLayer(marker);
         marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+
+        document.getElementById("lat").value = lat.toFixed(6);
+        document.getElementById("lng").value = lng.toFixed(6);
     });
-
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            let lat = pos.coords.latitude;
-            let lng = pos.coords.longitude;
-
-            map.setView([lat, lng], 16);
-
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
-
-            document.getElementById("lat").value = lat.toFixed(6);
-            document.getElementById("lng").value = lng.toFixed(6);
-        });
-    }
-
-    // FOTO
-    document.getElementById("foto").addEventListener("change", function(e) {
-        let file = e.target.files[0];
-        if (!file) return;
-
-        let reader = new FileReader();
-        reader.onload = function(r) {
-            let img = document.getElementById("preview");
-            img.src = r.target.result;
-            img.style.display = "block";
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // HERRAMIENTAS DE MEDICIÓN (modo simple)
-    document.getElementById("medirDist").onclick = () => {
-        map.pm.enableDraw('Line');
-    };
-    document.getElementById("medirArea").onclick = () => {
-        map.pm.enableDraw('Polygon');
-    };
-
-    // 🔘 Toggle panel herramientas
-    const toolsPanel = document.getElementById("tools");
-    document.getElementById("toggleTools").addEventListener("click", () => {
-        if (toolsPanel.style.display === "none" || toolsPanel.style.display === "") {
-            toolsPanel.style.display = "flex";
-        } else {
-            toolsPanel.style.display = "none";
-        }
-    });
-
-    // 🔘 Toggle panel estadísticas
-    const statsPanel = document.getElementById("estadisticas");
-    document.getElementById("toggleStats").addEventListener("click", () => {
-        if (statsPanel.style.display === "none" || statsPanel.style.display === "") {
-            statsPanel.style.display = "block";
-        } else {
-            statsPanel.style.display = "none";
-        }
-    });
-</script>
-
-<!-- FIREBASE -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import {
-    getFirestore, collection, addDoc, query, where, onSnapshot, getDocs
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCCFJljTjEFgA41bbk8-dSr2s3jNbyhRbg",
-    authDomain: "web1-f347f.firebaseapp.com",
-    projectId: "web1-f347f",
-    storageBucket: "web1-f347f.firebasestorage.app",
-    messagingSenderId: "205587516678",
-    appId: "1:205587516678:web:d132d2fc75e3c11a812287",
-    measurementId: "G-8HC2V112ZS"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-/* ===================================================
-   GUARDAR REPORTE SIN DUPLICADOS
-=================================================== */
-
-document.getElementById("formReporte").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    let btn = document.querySelector("button[type='submit']");
-    if (btn.disabled) return;
-
-    btn.disabled = true;
-    btn.innerText = "Enviando...";
-
-    let lat = document.getElementById("lat").value;
-    let lon = document.getElementById("lng").value;
-    let tipo = document.getElementById("tipo").value;
-    let ancho = document.getElementById("ancho").value;
-    let largo = document.getElementById("largo").value;
-    let peligro = document.getElementById("peligro").value;
-    let descripcion = document.getElementById("descripcion").value;
-    let fecha = document.getElementById("fecha").value;
-
-    if (!lat || !lon) return bloquearError("Debes seleccionar ubicación.", btn);
-    if (!tipo) return bloquearError("Selecciona un tipo.", btn);
-    if (!ancho || ancho <= 0) return bloquearError("Ancho inválido.", btn);
-    if (!largo || largo <= 0) return bloquearError("Largo inválido.", btn);
-    if (!peligro) return bloquearError("Selecciona peligro.", btn);
-    if (!descripcion.trim()) return bloquearError("Descripción requerida.", btn);
-    if (!fecha) return bloquearError("Fecha requerida.", btn);
-
-    let fotoFile = document.getElementById("foto").files[0];
-    let fotoURL = "";
-
-    try {
-        if (fotoFile) {
-            const storageRef = ref(storage, "fotos/" + Date.now() + "_" + fotoFile.name);
-            await uploadBytes(storageRef, fotoFile);
-            fotoURL = await getDownloadURL(storageRef);
-        }
-
-        await addDoc(collection(db, "reportes"), {
-            lat, lon, tipo,
-            ancho, largo,
-            peligro, descripcion, fecha,
-            foto: fotoURL,
-            creado: new Date().toISOString(),
-            validado: false
-        });
-
-        mostrarMensaje("✔ Reporte guardado (pendiente de validación)");
-
-        document.getElementById("formReporte").reset();
-        document.getElementById("preview").style.display = "none";
-
-    } catch (e) {
-        bloquearError("Error al guardar.", btn);
-        return;
-    }
-
-    setTimeout(() => {
-        btn.disabled = false;
-        btn.innerText = "Guardar reporte";
-    }, 3000);
-});
-
-function bloquearError(texto, btn) {
-    mostrarError(texto);
-    btn.disabled = false;
-    btn.innerText = "Guardar reporte";
-}
-
-/* ===========================
-   MENSAJES
-=========================== */
-function mostrarError(texto) {
-    const msg = document.getElementById("mensaje");
-    msg.innerHTML = texto;
-    msg.style.background = "#e74c3c";
-    msg.style.color = "white";
-    msg.style.padding = "12px";
-    msg.style.borderRadius = "6px";
-    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
-}
-
-function mostrarMensaje(texto) {
-    const msg = document.getElementById("mensaje");
-    msg.innerHTML = texto;
-    msg.style.background = "#1E74FF";
-    msg.style.color = "white";
-    msg.style.padding = "12px";
-    msg.style.borderRadius = "6px";
-    setTimeout(() => { msg.innerHTML = ""; msg.style.padding = "0"; }, 4000);
 }
 
 /* ===================================================
-   CARGAR REPORTES VALIDADOS + FILTROS
+   FOTO PREVIEW
 =================================================== */
 
-let marcadores = [];
-let filtroTipo = "todos";
-let filtroPeligro = "todos";
+document.getElementById("foto").addEventListener("change", function(e) {
+    let file = e.target.files[0];
+    if (!file) return;
 
-function aplicarFiltros() {
-    marcadores.forEach(m => map.removeLayer(m));
-
-    marcadores.forEach(m => {
-        let d = m.data;
-        if ((filtroTipo === "todos" || d.tipo === filtroTipo) &&
-            (filtroPeligro === "todos" || d.peligro === filtroPeligro)) {
-            m.addTo(map);
-        }
-    });
-}
-
-document.getElementById("filtroTipo").onchange = function() {
-    filtroTipo = this.value;
-    aplicarFiltros();
-};
-document.getElementById("filtroPeligro").onchange = function() {
-    filtroPeligro = this.value;
-    aplicarFiltros();
-};
-
-const q = query(collection(db, "reportes"), where("validado", "==", true));
-
-onSnapshot(q, (snapshot) => {
-    snapshot.docChanges().forEach(change => {
-        if (change.type === "added") {
-            const d = change.doc.data();
-
-            let marker = L.marker([d.lat, d.lon], {
-                icon: L.icon({
-                    iconUrl: "https://cdn-icons-png.flaticon.com/512/535/535239.png",
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 36]
-                })
-            })
-            .bindPopup(`
-                <b>${d.tipo}</b><br>
-                Dimensiones: ${d.ancho}×${d.largo} m<br>
-                Peligro: ${d.peligro}<br>
-                <img src="${d.foto}" width="120"><br>
-                ${d.descripcion}
-            `);
-
-            marker.data = d;
-            marcadores.push(marker);
-            aplicarFiltros();
-        }
-    });
+    let reader = new FileReader();
+    reader.onload = function(r) {
+        let img = document.getElementById("preview");
+        img.src = r.target.result;
+        img.style.display = "block";
+    };
+    reader.readAsDataURL(file);
 });
 
 /* ===================================================
-   ESTADÍSTICAS + GRÁFICO
+   HERRAMIENTAS DE MEDICIÓN CORREGIDAS
 =================================================== */
 
-async function cargarEstadisticas() {
-    const snap = await getDocs(collection(db, "reportes"));
-    let total = 0;
-    let bajo = 0, medio = 0, alto = 0;
+map.pm.setGlobalOptions({
+    measurement: true,
+    tooltips: true,
+    continueDrawing: false,
+    finishOn: 'dblclick'
+});
 
-    snap.forEach(d => {
-        const data = d.data();
-        if (data.validado === true) {
-            total++;
-            if (data.peligro === "bajo") bajo++;
-            if (data.peligro === "medio") medio++;
-            if (data.peligro === "alto") alto++;
-        }
+document.getElementById("medirDist").onclick = () => {
+    map.pm.enableDraw('Line', {
+        measurement: true,
+        showLength: true,
+        tooltips: true
     });
+};
 
-    document.getElementById("statsTexto").innerHTML = `
-        Total reportes validados: <b>${total}</b><br>
-        Bajo: <b>${bajo}</b><br>
-        Medio: <b>${medio}</b><br>
-        Alto: <b>${alto}</b>
-    `;
-
-    const ctx = document.getElementById('graficoPeligro').getContext('2d');
-    new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Bajo', 'Medio', 'Alto'],
-            datasets: [{
-                data: [bajo, medio, alto],
-                backgroundColor: ['#2ecc71', '#f1c40f', '#e74c3c']
-            }]
-        }
+document.getElementById("medirArea").onclick = () => {
+    map.pm.enableDraw('Polygon', {
+        measurement: true,
+        showArea: true,
+        tooltips: true
     });
-}
+};
 
-cargarEstadisticas();
+/* ===================================================
+   TOGGLES
+=================================================== */
+
+document.getElementById("toggleTools").onclick = () => {
+    const t = document.getElementById("tools");
+    t.style.display = t.style.display === "none" || t.style.display === "" ? "block" : "none";
+};
+
+document.getElementById("toggleStats").onclick = () => {
+    const s = document.getElementById("estadisticas");
+    s.style.display = s.style.display === "none" || s.style.display === "" ? "block" : "none";
+};
 
 </script>
 
