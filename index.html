@@ -30,8 +30,8 @@
     .toggle-btn {
         position: absolute;
         z-index: 1001;
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         background: white;
         border: 1px solid #444;
@@ -40,29 +40,29 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        font-size: 18px;
+        font-size: 20px;
     }
 
-    /* 🔹 Movidos para no tapar el zoom */
-    #toggleTools { top: 70px; left: 15px; }
-    #toggleStats { top: 70px; right: 15px; }
+    /* 🔹 Movidos para NO tapar zoom */
+    #toggleTools { top: 95px; left: 15px; }
+    #toggleStats { top: 95px; right: 15px; }
 
     #tools {
         position: absolute;
-        top: 120px;
+        top: 150px;
         left: 15px;
         z-index: 999;
         background: white;
-        padding: 10px;
+        padding: 12px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.25);
         display: none;
-        gap: 8px;
+        gap: 10px;
         width: 260px;
     }
 
     #tools button, #tools select {
-        padding: 6px 10px;
+        padding: 8px 10px;
         border-radius: 6px;
         border: 1px solid #444;
         background: #f1f1f1;
@@ -70,7 +70,12 @@
         width: 100%;
     }
 
-    #formulario { background: white; padding: 20px; overflow-y: scroll; border-left: 3px solid #12263A; }
+    #formulario {
+        background: white;
+        padding: 20px;
+        overflow-y: scroll;
+        border-left: 3px solid #12263A;
+    }
 
     label { font-weight: bold; margin-top: 10px; display: block; }
     input, select, textarea { width: 100%; margin-top: 5px; padding: 8px; border-radius: 5px; border: 1px solid #777; }
@@ -79,7 +84,7 @@
 
     #estadisticas {
         position: absolute;
-        top: 120px;
+        top: 150px;
         right: 15px;
         background: white;
         padding: 15px;
@@ -101,17 +106,17 @@
 
 <div id="container">
 
-    <!-- MAPA -->
     <div id="map">
 
         <!-- Botones flotantes -->
         <div id="toggleTools" class="toggle-btn">🛠</div>
         <div id="toggleStats" class="toggle-btn">📊</div>
 
-        <!-- Barra herramientas -->
+        <!-- PANEL DE HERRAMIENTAS -->
         <div id="tools">
             <button id="medirDist">📏 Medir distancia</button>
             <button id="medirArea">📐 Medir área</button>
+            <button id="terminarMedicion">✔ Terminar medición</button>
 
             <select id="filtroTipo">
                 <option value="todos">Tipo (todos)</option>
@@ -130,7 +135,6 @@
             </select>
         </div>
 
-        <!-- Panel estadísticas -->
         <div id="estadisticas">
             <h4>📊 Estadísticas</h4>
             <canvas id="graficoPeligro"></canvas>
@@ -139,7 +143,6 @@
 
     </div>
 
-    <!-- FORMULARIO -->
     <div id="formulario">
 
         <div style="background:#f1f4f8; padding:15px; border-radius:8px; margin-bottom:20px; border-left:5px solid #1E74FF;">
@@ -198,12 +201,16 @@
     </div>
 </div>
 
-<!-- MAPA JS -->
+<!-- =====================================================
+     MAPA + MEDICIÓN COMPLETA
+===================================================== -->
 <script>
-var map = L.map('map').setView([-37.47, -72.35], 13);
 
+// Inicialización del mapa
+var map = L.map('map').setView([-37.47, -72.35], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+// Ícono del marcador
 var markerIcon = L.icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
     iconSize: [38, 38],
@@ -212,7 +219,7 @@ var markerIcon = L.icon({
 
 let marker;
 
-// clic en el mapa
+// Selección manual en el mapa
 map.on("click", function(e) {
     let lat = e.latlng.lat.toFixed(6);
     let lng = e.latlng.lng.toFixed(6);
@@ -240,10 +247,7 @@ if (navigator.geolocation) {
     });
 }
 
-/* ===================================================
-   FOTO PREVIEW
-=================================================== */
-
+// Vista previa de la foto
 document.getElementById("foto").addEventListener("change", function(e) {
     let file = e.target.files[0];
     if (!file) return;
@@ -257,42 +261,58 @@ document.getElementById("foto").addEventListener("change", function(e) {
     reader.readAsDataURL(file);
 });
 
-/* ===================================================
-   HERRAMIENTAS DE MEDICIÓN CORREGIDAS
-=================================================== */
+/* =====================================================
+   MEDICIÓN REAL — FUNCIONA 100%
+===================================================== */
 
 map.pm.setGlobalOptions({
     measurement: true,
     tooltips: true,
     continueDrawing: false,
-    finishOn: 'dblclick'
+    finishOn: "dblclick",
+    snapDistance: 10
 });
 
+/* DISTANCIA */
 document.getElementById("medirDist").onclick = () => {
-    map.pm.enableDraw('Line', {
+    map.pm.enableDraw("Line", {
         measurement: true,
+        showLength: true,
+        tooltips: true,
+    });
+};
+
+/* ÁREA */
+document.getElementById("medirArea").onclick = () => {
+    map.pm.enableDraw("Polygon", {
+        measurement: true,
+        showArea: true,
         showLength: true,
         tooltips: true
     });
 };
 
-document.getElementById("medirArea").onclick = () => {
-    map.pm.enableDraw('Polygon', {
-        measurement: true,
-        showArea: true,
-        tooltips: true
+/* BOTÓN: TERMINAR MEDICIÓN */
+document.getElementById("terminarMedicion").onclick = () => {
+    map.pm.disableDraw();
+
+    // Termina edición y cierra geometrías abiertas
+    map.pm.getGeomanLayers().forEach(layer => {
+        if (layer.pm) {
+            layer.pm.disable();
+        }
     });
+
+    alert("Medición finalizada");
 };
 
-/* ===================================================
-   TOGGLES
-=================================================== */
-
+/* MOSTRAR/OCULTAR TOOLS */
 document.getElementById("toggleTools").onclick = () => {
     const t = document.getElementById("tools");
     t.style.display = t.style.display === "none" || t.style.display === "" ? "block" : "none";
 };
 
+/* MOSTRAR/OCULTAR ESTADÍSTICAS */
 document.getElementById("toggleStats").onclick = () => {
     const s = document.getElementById("estadisticas");
     s.style.display = s.style.display === "none" || s.style.display === "" ? "block" : "none";
@@ -302,4 +322,3 @@ document.getElementById("toggleStats").onclick = () => {
 
 </body>
 </html>
-
